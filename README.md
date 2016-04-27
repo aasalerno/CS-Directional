@@ -5,6 +5,7 @@ Compressed sensing for directional data. This dataset will be written from scrat
 The idea is that we will write the code in a modular fashion, looking for where to optimize when we need to. As per Jason Lerch, "The first rule of optimization... Don't", implying that we should only optimize when it's absolutely necessary. 
 
 The code will first be written in Python and then profiled -- all of this being noted in the commits (hopefully), in order to get things up and running. The plan is to:
+
   <b> Proof of Principle
   
     1) Have the code be able to properly perform TV operations on single slice (2D) datasets
