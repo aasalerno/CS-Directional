@@ -5,7 +5,7 @@ Compressed sensing for directional data. This dataset will be written from scrat
 The idea is that we will write the code in a modular fashion, looking for where to optimize when we need to. As per Jason Lerch, "The first rule of optimization... Don't", implying that we should only optimize when it's absolutely necessary. 
 
 The code will first be written in Python and then profiled -- all of this being noted in the commits (hopefully), in order to get things up and running. The plan is to:
-  <b> Proof of Principle <\b>
+  <b> Proof of Principle
   
     1) Have the code be able to properly perform TV operations on single slice (2D) datasets
     
@@ -13,8 +13,8 @@ The code will first be written in Python and then profiled -- all of this being 
     
     3) Be able to feed this information in, along with pseudo-undersampled data of high SNR phantoms into an optimization algorithm (scipy.minimize to start) utilizing CS reconstruction techniques and compare to the gold standard (fully sampled) case
   
-  <b> Secondary Testing <\b>
-    
+  <b> Secondary Testing 
+  
     1) Build the foundation of the directional term in two ways:
     
       a. Using the method of a weighting term that is calculated via some f(dot(di,dj)) -- most likely a Gaussian term
@@ -25,7 +25,7 @@ The code will first be written in Python and then profiled -- all of this being 
     
     3) Test the Diffusion phantom data with the directional terms and compare to each other, without the term, and the gold standard (fully sampled case)
   
-  <b> Tertiary Testing <\b>
+  <b> Tertiary Testing
   
     1) Actually undersample data from the scanner
     
