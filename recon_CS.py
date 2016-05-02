@@ -152,3 +152,41 @@ def genPDF(img_sz,
         
     return pdf
     
+def genSampling(pdf, n_iter, tol):
+    '''
+    Quick Monte-Carlo Algorithm to generate a sampling pattern, to try and have minimal peak interference. Number of samples is np.sum(pdf) +/- tol.
+    
+    Inputs:
+    [np.array]  pdf - Probability density function to choose from
+    [float]  n_iter - number of attempts
+    [int]       tol - Deviation from the desired number of samples
+    
+    Outputs:
+    [bool array]  mask - sampling pattern
+    [float]  actpctg - actual undersampling factor
+    
+    This code is ported from Michael Lustig 2007
+    '''
+    
+    pdf[np.where(pdf > 1)] = 1
+    K = np.sum(pdf)
+    
+    minIntr = 1e99;
+    minIntrVec = np.zeros(pdf.shape)
+    stat = []
+    
+    for n in xrange(n_iter):
+        tmp = np.zeros(pdf.shape)
+        while abs(np.sum(tmp - K)) > tol:
+            tmp = np.matlib.rand(pdf.shape) < pdf
+            
+        TMP = np.fft.ifft2(tmp/(pdf+EPS))
+        if max(abs(TMP[1:])) < minIntr:
+            minIntr = max(abs(TMP[1:]))
+            minIntrVec = tmp;
+            
+        stat.append(max(abs(TMP[1:])))
+        
+    actpctg = np.sum(minIntrVec)/minIntrVec.size
+    return minIntrVec, actpctg
+
