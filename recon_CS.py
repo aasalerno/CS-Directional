@@ -12,9 +12,11 @@
 from __future__ import division
 import pyminc.volumes.factory
 import numpy as np 
+import scipy as sp
 import sys
 import glob
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 EPS = np.finfo(float).eps
 
@@ -178,7 +180,7 @@ def genSampling(pdf, n_iter, tol):
     for n in xrange(n_iter):
         tmp = np.zeros(pdf.shape)
         while abs(np.sum(tmp - K)) > tol:
-            tmp = np.matlib.rand(pdf.shape) < pdf
+            tmp = np.random.random(pdf.shape) < pdf
             
         TMP = np.fft.ifft2(tmp/(pdf+EPS))
         if max(abs(TMP[1:])) < minIntr:
@@ -190,3 +192,52 @@ def genSampling(pdf, n_iter, tol):
     actpctg = np.sum(minIntrVec)/minIntrVec.size
     return minIntrVec, actpctg
 
+def genSamplingDir(img_sz,
+                dirFile = 'GradientVectorMag.txt',
+                pctg,
+                cyl = [0],
+                radius = 0.1,
+                nmins = 5,
+                endSize = None,
+                engfile = None):
+    
+    import itertools
+    dirs = np.genfromtxt(dirFile, delimiter = '\t')
+    n = int(dirs.shape[0])
+    r = np.zeros([n,n])
+
+    for i in xrange(n):
+        if dirs[i,2] < 0:
+            dirs[i,:] = -dirs[i,:]
+            
+    for i in xrange(n):
+        for j in xrange(n):
+            r[i,j] = np.sqrt(np.sum((dirs[i,:] - dirs[j,:])**2))
+            r[i,j] = min(np.sqrt(np.sum((-dirs[i,:] - dirs[j,:])**2)),r[i,j])
+
+    invR = 1/(r+EPS)
+
+    # Find all of the possible combinations of directions
+    k = int(np.floor(n*pctg))
+    combs = np.array(list(itertools.combinations(range(1,n+1),k)))
+    vecs = np.array(list(itertools.combinations(range(1,k+1),2)))
+    engStart = np.zeros([combs.shape[0]])
+
+    # Run the "Potential energy" for each of the combinations
+    if 'engFile' not in locals():
+        for i in xrange(combs.shape[0]):
+            for j in xrange(vecs.shape[0]):
+                engStart[i] = engStart[i] + invR[combs[i,vecs[j,0]-1]-1,combs[i,vecs[j,1]-1]-1]
+    else:
+        engStart = np.load(engFile)
+        # npy file
+    ind = engStart.argsort()
+    eng = engStart[ind]
+    vecsind = combs[ind,].T
+    locs = np.zeros([n,2,nmins])
+    vecsMin = np.zeros([k,n*nmins])
+    
+    for i in range(n):
+        locs[i,] = np.array(np.where(vecsind == i+1))[...,0:nmins]
+    
+    
