@@ -17,6 +17,7 @@ import sys
 import glob
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import os.path
 
 EPS = np.finfo(float).eps
 
@@ -37,7 +38,10 @@ def indata(inFolder):
         cnt += 1 
     return us_data
 
-
+def unique_rows(a):
+    a = np.ascontiguousarray(a)
+    unique_a = np.unique(a.view([('', a.dtype)]*a.shape[1]))
+    return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
     
 def zpad(res_sz,orig_data):
     res_sz = np.array(res_sz)
@@ -198,7 +202,7 @@ def genSamplingDir(img_sz,
                 cyl = [0],
                 radius = 0.1,
                 nmins = 5,
-                endSize = None,
+                endSize = img_sz,
                 engfile = None):
     
     import itertools
@@ -231,13 +235,94 @@ def genSamplingDir(img_sz,
     else:
         engStart = np.load(engFile)
         # npy file
+    
+    # Build the best cases of trying to get the vectors together
     ind = engStart.argsort()
     eng = engStart[ind]
-    vecsind = combs[ind,].T
-    locs = np.zeros([n,2,nmins])
+    vecsind = combs[ind,]
+    locs = np.zeros([n,nmins])
     vecsMin = np.zeros([k,n*nmins])
     
+    # Look for the locations where the indicies exist first (that is, they are the smallest)
+    # and input those as the vectors we want to use
     for i in range(n):
-        locs[i,] = np.array(np.where(vecsind == i+1))[...,0:nmins]
+        locs[i,] = np.array(np.where(vecsind == i+1))[0,0:nmins]
+        vecsMin[...,nmins*i:nmins*(i+1)] = vecsind[locs[i,].astype(int),...].T-1
     
+    vecsMin = unique_rows(vecsMin.T).astype(int)
+    amts = np.zeros(n)
+    
+    for i in xrange(n):
+        amts[i] = vecsMin[vecsMin == i].size
+        
+    srt = amts.argsort()
+    cts = amts[srt]
+    
+    qEng = np.percentile(eng,20)
+    
+    # if theres a huge difference, tack more of the lower counts on, but make sure that we aren't hitting too high energy sets
+    
+    vecsUnique,vecs_idx = np.unique(vecsind,return_index = True)
+    
+    while cts[-1]/cts[0] >= 1.1:
+        srt_hold = np.reshape(srt.copy(),(1,len(srt)))[0,:k]+1
+        srt_hold.sort()
+        # We need to add one here as index and direction number differ by a value of one
+        indx = np.where(np.all(srt_hold == vecsind,axis = 1)) 
+        
+        if eng[indx] < qEng:
+            vecsMin = np.vstack([vecsMin,srt_hold])
+        else:
+            while eng[indx] >= qEng:
+                arr = np.zeros(k)
+                cnt = 0
+                while not np.all(arr == 0):
+                    
+                    st = np.ceil(n*np.random.random(1))
+                    
+                    if not np.any(arr == st-1):
+                        arr[cnt] = st-1;
+                        
+                    
+                arr_hold = np.reshape(arr(),(1,len(srt)))[0,:k]+1
+                arr_hold.sort()
+                indx = np.where(np.all(arr_hold == vecsind,axis = 1))
+            
+            vecsMin = np.vstack([vecsMin,arr_hold])
+            for i in xrange(30):
+                amts[i] = vecsMin[vecsMin == i].size
+            srt = amts.argsort()
+            cts = amts[srt]
+            
+    for i in xrange(30):
+        amts[i] = vecsMin[vecsMin == i].size
+    
+    # Now we have to finally get the sampling pattern from this!
+    
+    [x,y] = np.meshgrid(np.linspace(-1,1,img_sz[1]),np.linspace(-1,1,img_sz[0]))
+    r = np.sqrt(x**2 + y**2)
+    
+    if not cyl:
+        r = r/np.max(abs(r))
+        
+    [rows,cols] = np.where(r <= 1) and np.where(r > radius)
+    [rx,ry] = np.where(r <= radius)
+    
+    samp = np.zeros(hstack([img_sz,n]))
+    nSets = np.hstack([vecsMin.size, 1])
+    
+    for i in xrange(rows):
+        val = np.ceil(nSets*np.random.random(1))
+        choice = vecsMin[val,]
+        samp[rows[i],cols[i],choice] = 1
+        
+    for i in xrange(rx.size):
+        samp[rx[i],ry[i],...] = 1
+        
+    if endSize.size != img_sz:
+        samp_final = np.zeros(np.hstack([endSize,n])
+        for i in xrange(n):
+            samp_final[...,...,i] = resize(zpad(samp[...,...,i].flat,endSize),np.hstack([endSize,1])
+        
+        samp = samp_final
     
