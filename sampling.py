@@ -1,7 +1,7 @@
 #!/usr/bin/env python -tt
 #
 #
-# recon_CS.py
+# sampling.py
 #
 #
 # We start with the data from the scanner. The inputs are:
@@ -325,4 +325,6 @@ def genSamplingDir(img_sz,
             samp_final[...,...,i] = resize(zpad(samp[...,...,i].flat,endSize),np.hstack([endSize,1])
         
         samp = samp_final
+    
+    return samp
     
