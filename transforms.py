@@ -10,11 +10,11 @@ from rwt import dwt, idwt
 from rwt.wavelets import daubcqf
 
 def fft2c(data_to_fft):
-    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fftshift(fft.fft2(data_to_fft))
+    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fftshift(fft.fft2(fft.ifftshift(data_to_fft))
     return FFTdata
 
 def ifft2c(data_to_ifft):
-    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifftshift(fft.ifft2(data_to_ifft))
+    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifftshift(fft.ifft2(fft.fftshift(data_to_ifft))
     return IFFTdata
 
 def xfm(data_to_xfm,scaling_factor = 4,L = 2):
