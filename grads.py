@@ -69,7 +69,7 @@ def gObj(x,
 	# Here we're going to convert the data into the k-sapce data, and then subtract
 	# off the original data from the scanner. Finally, we will convert this data 
 	# back into image space
-    x_data = samp_mask*tf.fft2c(x);
-    grad = tf.ifft2c(data_from_scanner - x_data);
+    x_data = samp_mask*tf.fft2c(x,axis=(0,1)); # Issue, feeding in 3D data to a 2D fft alg...
+    grad = tf.ifft2c(data_from_scanner - x_data,axis = (0,1));
     
     return grad
