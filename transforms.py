@@ -31,7 +31,7 @@ def ixfm(data_to_ixfm,scaling_factor = 4,L = 2):
     IXFMdata = idwt(data_to_ixfm,h,L)
     return IXFMdata
 
-def TV(data)
+def TV(data):
 	   
 	'''
 	A finite differences sampling operation done on datasets to spply some 
@@ -57,18 +57,18 @@ def TV(data)
 
 	
 def iDx(data,shp):
-	res = data[np.hstack([range(shp[0]-1),shp[0]-1],...,...] - data
+	res = data[np.hstack([range(shp[0]-1),shp[0]-1]),...,...] - data
 	res[0,...,...] = -data[0,...,...]
 	res[-1,...,...] = data[-2,...,...]
 	
 
 def iDy(data,shp):
-	res = data[...,np.hstack([range(shp[1]-1),shp[1]-1],...] - data
+	res = data[...,np.hstack([range(shp[1]-1),shp[1]-1]),...] - data
 	res[...,0,...] = -data[...,0,...]
 	res[...,-1,...] = data[...,-2,...]
 
 def iDz(data,shp):
-	res = data[...,...,np.hstack([range(shp[2]-1),shp[2]-1],...] - data
+	res = data[...,...,np.hstack([range(shp[2]-1),shp[2]-1]),...] - data
 	res[...,...,0] = -data[...,...,0]
 	res[...,...,-1] = data[...,...,-2]
 	
