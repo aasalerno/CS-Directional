@@ -46,7 +46,7 @@ def TV(data):
 		Dy = data[...,np.hstack([range(1,shp[1]),shp[1]])] - data
 		
 		res = np.array([Dx,Dy])
-	elif len(data.shape) == 3:
+	elif len(shp) == 3:
 		Dx = data[np.hstack([range(1,shp[0]),shp[0]]),...,...] - data
 		Dy = data[...,np.hstack([range(1,shp[0]),shp[0]]),...] - data
 		Dz = data[...,...,np.hstack([range(1,shp[2]),shp[2]])] - data

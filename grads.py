@@ -8,8 +8,8 @@ import numpy as np
 import transforms as tf
 
 def gXFM(x,
-        p = 1,
-        l1smooth = 1e-15):
+         p = 1,
+         l1smooth = 1e-15):
     '''
     In this code, we apply an approximation of what the 
     value would be for the gradient of the XFM (usually wavelet)
@@ -75,4 +75,17 @@ def gObj(x,
     
     return grad
 
-def gTV()
+def gTV(x,
+        p = 1,
+        l1smooth = 1e-15):
+	
+	grad = np.zeros([x.shape])
+	# Need to make sure here that we're iterating over the correct dimension
+	# As of right now, this assumes that we're working on a slice by slice basis
+	# I'll have to implement 3D data work soon.
+	for i in xrange(x.shape[0]):
+		Dx = tf.TV(data[i])
+		G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
+		grad[i] = iTV(G)
+	
+	return grad
