@@ -12,12 +12,12 @@ import numpy.fft as fft
 from rwt import dwt, idwt
 from rwt.wavelets import daubcqf
 
-def fft2c(data_to_fft):
-    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fftshift(fft.fft2(fft.ifftshift(data_to_fft))
+def fft2c(data_to_fft,axis=(-2,-1)):
+    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fftshift(fft.fft2(fft.ifftshift(data_to_fft)))
     return FFTdata
 
-def ifft2c(data_to_ifft):
-    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifftshift(fft.ifft2(fft.fftshift(data_to_ifft))
+def ifft2c(data_to_ifft,axis=(-2,-1)):
+    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifftshift(fft.ifft2(fft.fftshift(data_to_ifft),axis=axis))
     return IFFTdata
 
 def xfm(data_to_xfm,scaling_factor = 4,L = 2):
