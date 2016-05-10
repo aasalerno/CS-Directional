@@ -19,9 +19,24 @@ import rwt
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os.path
-import sampling as samp
+import transforms as tf
+import scipy.ndimage.filters
+#import sampling as samp
 
-def recon_CS(filename,
+EPS = np.finfo(float).eps
+
+def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
+    
+    if is_kspace:
+        data = tf.ifft2c(data)
+        if is_fftshifted:
+        data = np.ifftshift(data)
+    
+    #F = tf.matlab_style_gauss2D(shape=(5,5),sigma=2)
+    filtdata = sp.ndimage.uniform_filter(data,size=5)
+    return filtdata.conj()/(abs(filtdata)+EPS)
+
+def recon_CS(filename = '/home/asalerno/Documents/pyDirectionCompSense/data/SheppLogan256.npy',
              TVWeight = 0.01,
              XFMWeight = 0.01,
              TVPixWeight = 1,
@@ -32,4 +47,5 @@ def recon_CS(filename,
              l1smooth = 1e-15,
              xfmNorm = 1):
                     
+    im = np.load(filename); # For the simplest case right now
     
