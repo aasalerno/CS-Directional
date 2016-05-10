@@ -42,36 +42,36 @@ def TV(data):
 	shp = data.shape
 	
 	if len(shp) == 2:
-		Dx = data[np.hstack([range(1,shp[0]),shp[0]]),...] - data
-		Dy = data[...,np.hstack([range(1,shp[1]),shp[1]])] - data
+		Dx = data[np.hstack([range(1,shp[0]),shp[0]-1]),:] - data
+		Dy = data[:,np.hstack([range(1,shp[1]),shp[1]-1])] - data
 		
 		res = np.array([Dx,Dy])
 	elif len(shp) == 3:
-		Dx = data[np.hstack([range(1,shp[0]),shp[0]]),...,...] - data
-		Dy = data[...,np.hstack([range(1,shp[0]),shp[0]]),...] - data
-		Dz = data[...,...,np.hstack([range(1,shp[2]),shp[2]])] - data
-
+		Dx = data[np.hstack([range(1,shp[0]),shp[0]-1]),:,:] - data
+		Dy = data[:,np.hstack([range(1,shp[0]),shp[0]-1]),:] - data
+		Dz = data[:,:,np.hstack([range(1,shp[2]),shp[2]-1])] - data
 		res = np.array([Dx,Dy,Dz])
 	
 	return res
 
 	
 def iDx(data,shp):
-	res = data[np.hstack([range(shp[0]-1),shp[0]-1]),...,...] - data
-	res[0,...,...] = -data[0,...,...]
-	res[-1,...,...] = data[-2,...,...]
-	
+	res = data[np.hstack([0,range(shp[0]-1)]),:] - data
+	res[0,:] = -data[0,:]
+	res[-1,:] = data[-2,:]
+	return res
 
 def iDy(data,shp):
-	res = data[...,np.hstack([range(shp[1]-1),shp[1]-1]),...] - data
-	res[...,0,...] = -data[...,0,...]
-	res[...,-1,...] = data[...,-2,...]
+	res = data[:,np.hstack([0,range(shp[1]-1)])] - data
+	res[:,0] = -data[:,0]
+	res[:,-1] = data[:,-2]
+	return res
 
 def iDz(data,shp):
-	res = data[...,...,np.hstack([range(shp[2]-1),shp[2]-1]),...] - data
-	res[...,...,0] = -data[...,...,0]
-	res[...,...,-1] = data[...,...,-2]
-	
+	res = data[:,:,np.hstack([0,range(shp[2]-1)])] - data
+	res[:,:,0] = -data[:,:,0]
+	res[:,:,-1] = data[:,:,-2]
+	return res
 
 def iTV(data):
 	'''
@@ -83,10 +83,10 @@ def iTV(data):
 	
 	shp = data.shape
 	
-	res = iDx(data[0,...,...,...])+ iDy(data[1,...,...,...])
+	res = iDx(data[0,:,:],shp[1:])+ iDy(data[1,:,:],shp[1:])
 	
-	if len(shp) == 3:
-		res = res + iDz(data[2,...,...,...])
+	if len(shp) == 4:
+		res = res + iDz(data[2,:,:,:],shp[1:])
 	
 	return res
 	
