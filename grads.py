@@ -72,16 +72,17 @@ def gObj(x,
     
     return grad
 
-#def gTV(x,p = 1,l1smooth = 1e-15):
-    #grad = np.zeros(x.shape)
+def gTV(x,data,strtag,dirs = None,nmins = 3, p = 1,l1smooth = 1e-15):
     
-    ## Need to make sure here that we're iterating over the correct dimension
-    ## As of right now, this assumes that we're working on a slice by slice basis
-    ## I'll have to implement 3D data work soon.
+    grad = np.zeros(x.shape)
+    TV_data = TV(data,strtag,dirs = None,nmins = 3)
+    # Need to make sure here that we're iterating over the correct dimension
+    # As of right now, this assumes that we're working on a slice by slice basis
+    # I'll have to implement 3D data work soon.
     
     #for i in xrange(1):
         #Dx = tf.TV(x)
         #G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
         #grad = tf.iTV(G)
     
-    #return grad
+    return grad
