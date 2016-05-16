@@ -22,6 +22,8 @@ import sampling as samp
 
 EPS = np.finfo(float).eps
 
+def fun(x,
+
 def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
     
     if is_kspace:
@@ -73,11 +75,10 @@ def recon_CS(filename = '/home/asalerno/Documents/pyDirectionCompSense/data/Shep
     
     # Grads
     gObj = grads.gObj(im,data,k)
-    gTV = grads.gTV(im)
+    #gTV = grads.gTV(im)
     gXFM = grads.gXFM(im)
     
     
-    for i in xrange(8):
         
     
     
