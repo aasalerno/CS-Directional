@@ -31,64 +31,75 @@ def ixfm(data_to_ixfm,scaling_factor = 4,L = 2):
     IXFMdata = idwt(data_to_ixfm,h,L)
     return IXFMdata
 
-def TV(data):
-	   
-	'''
-	A finite differences sampling operation done on datasets to spply some 
-	smoothing techniques.
-	
-	Note that the output comes back such that the stacking dimension is dimension 0
-	'''
-	shp = data.shape
-	
-	if len(shp) == 2:
-		Dx = data[np.hstack([range(1,shp[0]),shp[0]-1]),:] - data
-		Dy = data[:,np.hstack([range(1,shp[1]),shp[1]-1])] - data
-		
-		res = np.array([Dx,Dy])
-	elif len(shp) == 3:
-		Dx = data[np.hstack([range(1,shp[0]),shp[0]-1]),:,:] - data
-		Dy = data[:,np.hstack([range(1,shp[0]),shp[0]-1]),:] - data
-		Dz = data[:,:,np.hstack([range(1,shp[2]),shp[2]-1])] - data
-		res = np.array([Dx,Dy,Dz])
-	
-	return res
+def TV(data,strtag,ndir = 3):
+    
+    '''
+    A finite differences sampling operation done on datasets to spply some 
+    smoothing techniques.
+    
+    Note that the output comes back such that the stacking dimension is dimension 0
+    '''
+    nstacks = 0
+    cnt = 0
+    axisvals = []
+    for i in xrange(len(strtag)):
+        if strtag[i].lower() == 'spatial':
+            nstacks += 1
+            axisvals.append(cnt)
+            cnt += 1
+        elif strtag[i].lower() == 'diff':
+            nstacks += ndir
+            axisvals.append(0)
+    
+    res = np.zeros(np.hstack([nstacks, data.shape]))
+    
+    cnt = 0
+    
+    for i in xrange(len(strtag)):
+        if strtag[i].lower() == 'spatial':
+            res[cnt,:,:] = np.roll(data,1,axis = axisvals[i]) - data
+            cnt += 1
+        elif strtag[i].lower() == 'diff':
+            res[cnt:cnt+ndir,:,:] = TVDir(data)
+            cnt += ndir
+    
+    return res
 
-	
-def iDx(data,shp):
-	res = data[np.hstack([0,range(shp[0]-1)]),:] - data
-	res[0,:] = -data[0,:]
-	res[-1,:] = data[-2,:]
-	return res
 
-def iDy(data,shp):
-	res = data[:,np.hstack([0,range(shp[1]-1)])] - data
-	res[:,0] = -data[:,0]
-	res[:,-1] = data[:,-2]
-	return res
+#def iDx(data,shp):
+	#res = data[np.hstack([0,range(shp[0]-1)]),:] - data
+	#res[0,:] = -data[0,:]
+	#res[-1,:] = data[-2,:]
+	#return res
 
-def iDz(data,shp):
-	res = data[:,:,np.hstack([0,range(shp[2]-1)])] - data
-	res[:,:,0] = -data[:,:,0]
-	res[:,:,-1] = data[:,:,-2]
-	return res
+#def iDy(data,shp):
+	#res = data[:,np.hstack([0,range(shp[1]-1)])] - data
+	#res[:,0] = -data[:,0]
+	#res[:,-1] = data[:,-2]
+	#return res
 
-def iTV(data):
-	'''
-	Inverse of the finite differences sampling operation done. Attempting to build back
-	the data after it's been TV'd
+#def iDz(data,shp):
+	#res = data[:,:,np.hstack([0,range(shp[2]-1)])] - data
+	#res[:,:,0] = -data[:,:,0]
+	#res[:,:,-1] = data[:,:,-2]
+	#return res
+
+#def iTV(data):
+	#'''
+	#Inverse of the finite differences sampling operation done. Attempting to build back
+	#the data after it's been TV'd
 	
-	Note that the input must be put in such that the stacking dimension is dimension 0
-	'''
+	#Note that the input must be put in such that the stacking dimension is dimension 0
+	#'''
 	
-	shp = data.shape
+	#shp = data.shape
 	
-	res = iDx(data[0,:,:],shp[1:])+ iDy(data[1,:,:],shp[1:])
+	#res = iDx(data[0,:,:],shp[1:])+ iDy(data[1,:,:],shp[1:])
 	
-	if len(shp) == 4:
-		res = res + iDz(data[2,:,:,:],shp[1:])
+	#if len(shp) == 4:
+		#res = res + iDz(data[2,:,:,:],shp[1:])
 	
-	return res
+	#return res
 
 def matlab_style_gauss2D(shape=(3,3),sigma=0.5):
     """
