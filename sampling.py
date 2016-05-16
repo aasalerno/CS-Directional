@@ -83,13 +83,13 @@ def genPDF(img_sz,
     
     # Check if we're doing cylindrical data, if so, change img_sz and note that we need to zero pad
     if cyl[0] == 1:
-        img_sz_hold = [cyl[1], cyl[2]]
-        cir = True;
+        img_sz_hold = cyl[1:]
+        cir = True
         
-        if img_sz_hold != img_sz:
-            zpad_mat = True;
+        if (tuple(img_sz_hold) == img_sz):
+            zpad_mat = False
         else:
-            zpad_mat = False;
+            zpad_mat = True
             
     else:
         img_sz_hold = img_sz
@@ -183,26 +183,26 @@ def genSampling(pdf, n_iter, tol):
     
     for n in xrange(n_iter):
         tmp = np.zeros(pdf.shape)
-        while abs(np.sum(tmp - K)) > tol:
+        while abs(np.sum(tmp) - K) > tol:
             tmp = np.random.random(pdf.shape) < pdf
             
         TMP = np.fft.ifft2(tmp/(pdf+EPS))
-        if max(abs(TMP[1:])) < minIntr:
-            minIntr = max(abs(TMP[1:]))
+        if np.max(abs(TMP[1:])) < minIntr:
+            minIntr = np.max(abs(TMP[1:]))
             minIntrVec = tmp;
             
-        stat.append(max(abs(TMP[1:])))
+        stat.append(np.max(abs(TMP[1:])))
         
     actpctg = np.sum(minIntrVec)/minIntrVec.size
     return minIntrVec, actpctg
 
-def genSamplingDir(img_sz,
+def genSamplingDir(img_sz = [256,256],
                 dirFile = 'GradientVectorMag.txt',
-                pctg,
+                pctg = 0.25,
                 cyl = [0],
                 radius = 0.1,
                 nmins = 5,
-                endSize = img_sz,
+                endSize = [256,256],
                 engfile = None):
     
     import itertools
@@ -317,12 +317,13 @@ def genSamplingDir(img_sz,
         samp[rows[i],cols[i],choice] = 1
         
     for i in xrange(rx.size):
-        samp[rx[i],ry[i],...] = 1
+        samp[rx[i],ry[i],:] = 1
         
-    if endSize.size != img_sz:
-        samp_final = np.zeros(np.hstack([endSize,n])
+    if endSize.shape != img_sz:
+        samp_final = np.zeros(np.hstack([endSize,n]))
+        
         for i in xrange(n):
-            samp_final[...,...,i] = resize(zpad(samp[...,...,i].flat,endSize),np.hstack([endSize,1])
+            samp_final[...,...,i] = np.resize(zpad(samp[...,...,i].flat,endSize),np.hstack([endSize,1]))
         
         samp = samp_final
     
