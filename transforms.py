@@ -12,6 +12,7 @@ import numpy as np
 import numpy.fft as fft
 from rwt import dwt, idwt
 from rwt.wavelets import daubcqf
+import direction as d
 
 def fft2c(data_to_fft,axes=(-2,-1)):
     FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fft2(data_to_fft,axes=axes)
@@ -31,7 +32,7 @@ def ixfm(data_to_ixfm,scaling_factor = 4,L = 2):
     IXFMdata = idwt(data_to_ixfm,h,L)
     return IXFMdata
 
-def TV(data,strtag,ndir = 3):
+def TV(data,strtag,dirs = None,nmins = 3):
     
     '''
     A finite differences sampling operation done on datasets to spply some 
@@ -39,17 +40,15 @@ def TV(data,strtag,ndir = 3):
     
     Note that the output comes back such that the stacking dimension is dimension 0
     '''
-    nstacks = 0
-    cnt = 0
-    axisvals = []
-    for i in xrange(len(strtag)):
-        if strtag[i].lower() == 'spatial':
-            nstacks += 1
-            axisvals.append(cnt)
-            cnt += 1
-        elif strtag[i].lower() == 'diff':
-            nstacks += ndir
-            axisvals.append(0)
+    #axisvals = []
+    #for i in xrange(len(strtag)):
+        #if strtag[i].lower() == 'spatial':
+            #nstacks += 1
+            #axisvals.append(cnt)
+            #cnt += 1
+        #elif strtag[i].lower() == 'diff':
+            #nstacks += nmins
+            #axisvals.append(0)
     
     res = np.zeros(np.hstack([nstacks, data.shape]))
     
@@ -57,11 +56,13 @@ def TV(data,strtag,ndir = 3):
     
     for i in xrange(len(strtag)):
         if strtag[i].lower() == 'spatial':
-            res[cnt,:,:] = np.roll(data,1,axis = axisvals[i]) - data
+            #res[cnt,:,:] = np.roll(data,1,axis = axisvals[i]) - data
+            res[i,:,:] = np.roll(data,1,axis = i) - data
             cnt += 1
         elif strtag[i].lower() == 'diff':
-            res[cnt:cnt+ndir,:,:] = TVDir(data)
-            cnt += ndir
+            #res[cnt:cnt+nmins,:,:] = TVDir(data)
+            res[i,:,:] = d.least_Squares_Fitting(data,strtag,dirs,nmins)
+            #cnt += nmins
     
     return res
 
