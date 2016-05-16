@@ -31,14 +31,11 @@ def gXFM(x,
     Outputs:
     [np.array] grad - the gradient of the XFM
     '''
-    
     grad = np.zeros(x.shape)
-    
-#    for i in xrange(x.shape[2]):
-#        x1 = x[...,...,i]
-#        grad[...,...,i] = p*x1*(x1*x1.conj()+l1smooth)**(p/2-1)
-	grad = p*x*(x*x.conj()+l1smooth)**(p/2.0-1)
-        
+    #    for i in xrange(x.shape[2]):
+    #        x1 = x[...,...,i]
+    #        grad[...,...,i] = p*x1*(x1*x1.conj()+l1smooth)**(p/2-1)
+    grad = p*x*(x*x.conj()+l1smooth)**(p/2.0-1)
     return grad
 
 def gObj(x,
@@ -67,25 +64,24 @@ def gObj(x,
     
     #grad = np.zeros([x.shape])
     
-	# Here we're going to convert the data into the k-sapce data, and then subtract
-	# off the original data from the scanner. Finally, we will convert this data 
-	# back into image space
+    # Here we're going to convert the data into the k-sapce data, and then subtract
+    # off the original data from the scanner. Finally, we will convert this data 
+    # back into image space
     x_data = samp_mask*tf.fft2c(x); # Issue, feeding in 3D data to a 2D fft alg...
     grad = tf.ifft2c(data_from_scanner - x_data);
     
     return grad
 
-def gTV(x,
-        p = 1,
-        l1smooth = 1e-15):
-	
-	grad = np.zeros([x.shape])
-	# Need to make sure here that we're iterating over the correct dimension
-	# As of right now, this assumes that we're working on a slice by slice basis
-	# I'll have to implement 3D data work soon.
-	for i in xrange(x.shape[0]):
-		Dx = tf.TV(data[i])
-		G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
-		grad[i] = iTV(G)
-	
-	return grad
+#def gTV(x,p = 1,l1smooth = 1e-15):
+    #grad = np.zeros(x.shape)
+    
+    ## Need to make sure here that we're iterating over the correct dimension
+    ## As of right now, this assumes that we're working on a slice by slice basis
+    ## I'll have to implement 3D data work soon.
+    
+    #for i in xrange(1):
+        #Dx = tf.TV(x)
+        #G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
+        #grad = tf.iTV(G)
+    
+    #return grad
