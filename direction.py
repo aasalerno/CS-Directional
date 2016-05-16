@@ -34,12 +34,12 @@ def dot_product_threshold_with_weights(filename,
     
     return locs, vals
 
-def dot_product_with_mins(filename,
+def dot_product_with_mins(dirs,
                           nmins = 4):
     '''
     This code exists to quickly calculate the closest directions in order to quickly get the values we need to calculate the mid matrix for the least squares fitting
     '''
-    dirs = np.loadtxt(filename) # Load in the file
+    #dirs = np.loadtxt(filename) # Load in the file
     num_vecs = dirs.shape[0] # Get the number of directions
     
     dp = np.zeros([num_vecs,num_vecs]) # Preallocate for speed
@@ -49,12 +49,12 @@ def dot_product_with_mins(filename,
             dp[i,j] = np.dot(dirs[i,:],dirs[j,:]) # Do all of the dot products
     
     inds = np.argsort(dp) # Sort the data based on *rows*
-    return inds[:,1:nmins+1], dirs
+    return inds[:,1:nmins+1]
 
 def func(x,a,b):
     return a + b*x
 
-def calc_Mid_Matrix(filename,nmins):
+def calc_Mid_Matrix(dirs,nmins):
     '''
     The purpose of this code is to create the middle matrix for the calculation:
         Gdiff**2 = del(I_{ijkrq}).T*M*del(I_{ijkrq})
@@ -68,7 +68,7 @@ def calc_Mid_Matrix(filename,nmins):
     
     The return is an nDirs x nMins x nMins matrix where m is the number of directions that we have in the dataset.
     '''
-    inds,dirs = dot_product_with_mins(filename,nmins)
+    inds = dot_product_with_mins(dirs,nmins)
     #dirs = np.loadtxt(filename)
     
     M = np.zeros([dirs.shape[0],nmins,nmins])
@@ -116,4 +116,6 @@ def least_Squares_Fitting(data,strtag,dirs,inds,M):
             for j in xrange(ncol):
                 Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:].reshape(nmins,nmins)),Irq[:,i,j].reshape(nmins,1))
     
+    # This line puts the data back into the orientation that it was in before
+    Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc+1)
     return Gdiffsq
