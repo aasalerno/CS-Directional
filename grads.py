@@ -7,7 +7,7 @@ from __future__ import division
 import numpy as np
 import transforms as tf
 
-def gXFM(x,
+def gXFM(x,N,
          p = 1,
          l1smooth = 1e-15):
     '''
@@ -31,6 +31,7 @@ def gXFM(x,
     Outputs:
     [np.array] grad - the gradient of the XFM
     '''
+    x.shape = N
     grad = np.zeros(x.shape)
     #    for i in xrange(x.shape[2]):
     #        x1 = x[...,...,i]
@@ -38,11 +39,9 @@ def gXFM(x,
     grad = p*x*(x*x.conj()+l1smooth)**(p/2.0-1)
     return grad
 
-def gObj(x,
+def gObj(x,N,
          data_from_scanner,
-         samp_mask,
-         p = 1,
-         l1smooth = 1e-15):
+         samp_mask):
     '''
     Here, we are attempting to get the objective derivative from the
     function. This gradient is how the current data compares to the 
@@ -61,21 +60,24 @@ def gObj(x,
     '''
     if len(x.shape) == 2:
         x = np.reshape(x,np.hstack([x.shape, 1]))
-    
+
     #grad = np.zeros([x.shape])
-    
+
     # Here we're going to convert the data into the k-sapce data, and then subtract
     # off the original data from the scanner. Finally, we will convert this data 
     # back into image space
+    x.shape = N
+    data_from_scanner.shape = N
     x_data = samp_mask*tf.fft2c(x); # Issue, feeding in 3D data to a 2D fft alg...
-    grad = tf.ifft2c(data_from_scanner - x_data);
+    grad = 2*tf.ifft2c(data_from_scanner - x_data);
     
     return grad
 
-def gTV(x,data,strtag,dirs = None,nmins = 3, p = 1,l1smooth = 1e-15):
+def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1e-15):
     
+    x.shape = N
     grad = np.zeros(x.shape)
-    TV_data = TV(data,strtag,dirs = None,nmins = 3)
+    TV_data = tf.TV(x,N,strtag,dirWeight,dirs,nmins,M)
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
     # I'll have to implement 3D data work soon.

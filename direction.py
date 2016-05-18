@@ -90,8 +90,9 @@ def calc_Mid_Matrix(dirs,nmins):
 #def residuals(a,b):
 #    return 
     
-def least_Squares_Fitting(data,strtag,dirs,inds,M):
+def least_Squares_Fitting(data,N,strtag,dirs,inds,M):
     
+    data.shape = N
     nmins = inds.shape[1]
     dirloc = strtag.index("diff")
     data = np.rollaxis(data,dirloc)
@@ -118,4 +119,5 @@ def least_Squares_Fitting(data,strtag,dirs,inds,M):
     
     # This line puts the data back into the orientation that it was in before
     Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc+1)
+    
     return Gdiffsq
