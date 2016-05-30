@@ -32,7 +32,7 @@ def derivative_fun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = Non
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
     gXFM = grads.gXFM(x,N) # Calculate the wavelet gradient
     x.shape = (x.size,)
-    return (gObj + lam1*gTV + lam2*gXFM) # Export the flattened array
+    return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
 def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
     '''
@@ -44,6 +44,8 @@ def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins 
     obj = np.sum(obj_data*obj_data.conj()) #L2 Norm
     tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
     xfm = np.sum(abs(tf.xfm(x,scaling_factor,L))) #L1 Norm
+    x.shape = (x.size,)
+    data.shape = (data.size,)
     return abs(obj + lam1*tv + lam2*xfm)
 
 def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
@@ -57,7 +59,8 @@ def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
     filtdata = sp.ndimage.uniform_filter(data,size=5)
     return filtdata.conj()/(abs(filtdata)+EPS)
 
-def recon_CS(filename = '/home/asalerno/Documents/pyDirectionCompSense/data/SheppLogan256.npy',#'DTI_Phantom-SNR1000.npy',
+def recon_CS(filename = 
+             '/home/asalerno/Documents/pyDirectionCompSense/data/SheppLogan256.npy', #'DTI_Phantom-SNR1000.npy',
              strtag = ['spatial','spatial'],
              TVWeight = 0.01,
              XFMWeight = 0.01,
@@ -69,9 +72,9 @@ def recon_CS(filename = '/home/asalerno/Documents/pyDirectionCompSense/data/Shep
              xfmNorm = 1,
              scaling_factor = 4,
              L = 2,
-             method = 'BFGS',
+             method = 'CG',
              dirFile = None,
-             nmins = None):# = 4):
+             nmins = None): # = 4):
     np.random.seed(2000)
     im = np.load(filename)
     # im = im + 0.1*(np.random.normal(size=[256,256]) + 1j*np.random.normal(size = [256,256])) # For the simplest case right now
@@ -104,9 +107,12 @@ def recon_CS(filename = '/home/asalerno/Documents/pyDirectionCompSense/data/Shep
     im_scan = tf.ifft2c(data)
     
     # Primary first guess. What we're using for now. Density corrected
-    im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)) 
+    im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)).flatten().copy()
     
     # Optimization
-    im_result = opt.minimize(optfun, im_dc.flatten(), args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon})
+    im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon})
     
+    return im_result
     
+if __name__ == "__main__":
+    print(recon_CS())
