@@ -32,7 +32,7 @@ def derivative_fun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = Non
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
     gXFM = grads.gXFM(x,N) # Calculate the wavelet gradient
     x.shape = (x.size,)
-    return (gObj + lam1*gTV + lam2*gXFM)# Export the flattened array
+    return (gObj + lam1*gTV + lam2*gXFM) # Export the flattened array
 
 def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
     '''
@@ -101,7 +101,7 @@ def recon_CS(filename = '/home/asalerno/Documents/pyDirectionCompSense/data/Shep
     #data = np.fft.ifftshift(np.fft.fftshift(data)*ph.conj());
     
     # "Data from the scanner"
-    im = tf.ifft2c(data)
+    im_scan = tf.ifft2c(data)
     
     # Primary first guess. What we're using for now. Density corrected
     im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)) 
