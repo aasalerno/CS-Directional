@@ -51,7 +51,7 @@ def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
             #axisvals.append(0)
     
     
-    res = np.zeros(np.hstack([len(strtag), im.shape]))
+    res = np.zeros(np.hstack([len(strtag), im.shape]),dtype=complex)
     
     cnt = 0
     for i in xrange(len(strtag)):
