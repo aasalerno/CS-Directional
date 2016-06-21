@@ -7,6 +7,7 @@ from __future__ import division
 import numpy as np
 import transforms as tf
 
+
 def gXFM(x,N,
          p = 1,
          l1smooth = 1e-15):
@@ -30,13 +31,22 @@ def gXFM(x,N,
     
     Outputs:
     [np.array] grad - the gradient of the XFM
+    
     '''
-    x.shape = N
-    grad = np.zeros(x.shape)
+    
+    
+    ######################################1
+    
+    ### NEED TO EDIT THIS 
+    ### BECAUSE IT'S NOT HANDLING X.SHAPE PROPERLY
+    
+    ######################################1
+    x0 = x.reshape(N)
+    grad = np.zeros(N)
     #    for i in xrange(x.shape[2]):
     #        x1 = x[...,...,i]
     #        grad[...,...,i] = p*x1*(x1*x1.conj()+l1smooth)**(p/2-1)
-    grad = p*x*(x*x.conj()+l1smooth)**(p/2.0-1)
+    grad = p*x0*(x0*x0.conj()+l1smooth)**(p/2.0-1)
     return grad
 
 def gObj(x,N,
@@ -66,18 +76,20 @@ def gObj(x,N,
     # Here we're going to convert the data into the k-sapce data, and then subtract
     # off the original data from the scanner. Finally, we will convert this data 
     # back into image space
-    x.shape = N
+    x0 = x.reshape(N)
     data_from_scanner.shape = N
-    x_data = samp_mask*tf.fft2c(x); # Issue, feeding in 3D data to a 2D fft alg...
+    x_data = samp_mask*tf.fft2c(x0); # Issue, feeding in 3D data to a 2D fft alg...
     grad = 2*tf.ifft2c(data_from_scanner - x_data);
     
     return grad
 
 def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1e-15):
     
-    x.shape = N
-    grad = np.zeros(x.shape)
-    TV_data = tf.TV(x,N,strtag,dirWeight,dirs,nmins,M)
+    x0 = im.reshape(N)
+    grad = np.zeros(N)
+    TV_data = tf.TV(x0,N,strtag,dirWeight,dirs,nmins,M)
+    
+    
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
     # I'll have to implement 3D data work soon.

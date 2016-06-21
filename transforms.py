@@ -55,11 +55,11 @@ def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
     
     cnt = 0
     for i in xrange(len(strtag)):
-        if strtag[i].lower() == 'spatial':
+        if strtag[i] == 'spatial':
             #res[cnt,:,:] = np.roll(data,1,axis = axisvals[i]) - data
-            res[i,:,:] = np.roll(im,1,axis = i) - im
+            res[i,:,:] = np.roll(im,-1,axis = i) - im
             #cnt += 1
-        elif strtag[i].lower() == 'diff':
+        elif strtag[i] == 'diff':
             #res[cnt:cnt+nmins,:,:] = TVDir(data)
             res[i,:,:] = dirWeight*d.least_Squares_Fitting(im,N,strtag,dirs,nmins,M)
             #cnt += nmins

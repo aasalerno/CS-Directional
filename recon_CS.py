@@ -30,9 +30,9 @@ def derivative_fun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = Non
     '''
     gObj = grads.gObj(x,N,data,k) # Calculate the obj function
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
-    gXFM = grads.gXFM(x,N) # Calculate the wavelet gradient
+    gXFM = tv.ixfm(grads.gXFM(tv.xfm(x),N)) # Calculate the wavelet gradient
     x.shape = (x.size,)
-    return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
+    return -(gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
 def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
     '''
@@ -46,6 +46,9 @@ def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins 
     xfm = np.sum(abs(tf.xfm(x,scaling_factor,L))) #L1 Norm
     x.shape = (x.size,)
     data.shape = (data.size,)
+    print('obj: %.2f' % abs(obj))
+    print('tv: %.2f' % abs(lam1*tv))
+    print('xfm: %.2f' % abs(lam2*xfm))
     return abs(obj + lam1*tv + lam2*xfm)
 
 def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
@@ -67,7 +70,7 @@ def recon_CS(filename =
              dirWeight = 0,
              #DirType = 2,
              ItnLim = 150,
-             epsilon = 0.02,
+             epsilon = 1,
              l1smooth = 1e-15,
              xfmNorm = 1,
              scaling_factor = 4,
@@ -78,7 +81,7 @@ def recon_CS(filename =
     np.random.seed(2000)
     im = np.load(filename)
     # im = im + 0.1*(np.random.normal(size=[256,256]) + 1j*np.random.normal(size = [256,256])) # For the simplest case right now
-
+    strtag = strtag.lower()
 
     N = np.array(im.shape) #image Size
     tupleN = tuple(N)
@@ -110,7 +113,7 @@ def recon_CS(filename =
     im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)).flatten().copy()
     
     # Optimization
-    im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon})
+    im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
     
     return im_result
     
