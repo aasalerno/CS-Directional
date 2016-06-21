@@ -35,12 +35,6 @@ def gXFM(x,N,
     '''
     
     
-    ######################################1
-    
-    ### NEED TO EDIT THIS 
-    ### BECAUSE IT'S NOT HANDLING X.SHAPE PROPERLY
-    
-    ######################################1
     x0 = x.reshape(N)
     grad = np.zeros(N)
     #    for i in xrange(x.shape[2]):
@@ -88,7 +82,13 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
     x0 = im.reshape(N)
     grad = np.zeros(N)
     TV_data = tf.TV(x0,N,strtag,dirWeight,dirs,nmins,M)
+    k = 0.5
     
+    for i in xrange(len(strtag)):
+        if strtag[i] == 'spatial':
+            grad[i,:,:] = np.tanh(k*TV_data[i,:,:])
+        elif strtag[i] == 'diff':
+            # Do stuff for directional data
     
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
@@ -99,4 +99,5 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
         #G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
         #grad = tf.iTV(G)
     
+    grad = np.sum(grad,axis=0)
     return grad
