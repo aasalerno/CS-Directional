@@ -45,10 +45,10 @@ def dot_product_with_mins(dirs,
     dp = np.zeros([num_vecs,num_vecs]) # Preallocate for speed
         
     for i in xrange(num_vecs):
-        for j in xrange(1,num_vecs):
+        for j in xrange(num_vecs):
             dp[i,j] = np.dot(dirs[i,:],dirs[j,:]) # Do all of the dot products
     
-    inds = np.argsort(dp) # Sort the data based on *rows*
+    inds = np.fliplr(np.argsort(abs(dp))) # Sort the data based on *rows*
     return inds[:,1:nmins+1]
 
 def func(x,a,b):

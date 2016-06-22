@@ -62,6 +62,25 @@ def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
     filtdata = sp.ndimage.uniform_filter(data,size=5)
     return filtdata.conj()/(abs(filtdata)+EPS)
 
+    
+def gDir_lookupTable(inds):
+    '''
+    THe lookup table takes the indicies in, and creates a lookup table based on where a value occurs within the inds matrix. It makes all of the values in the row of the counter -1 because that is where the subtraction is happening, and +1 everywhere else.
+    '''
+    rows,cols = inds.shape
+    lookupTable = np.zeros([rows,rows,cols])
+        
+    for i in xrange(rows):
+        lt = np.zeros([rows,cols])
+        lt[i,:] = -1
+        x,y = np.where(inds==i)
+        for j in xrange(x.size):
+            lt[x[j],y[j]] = 1
+        lookupTable[i,:,:] = lt
+    
+    return lookupTable
+    
+    
 def recon_CS(filename = 
              '/home/asalerno/Documents/pyDirectionCompSense/data/SheppLogan256.npy', #'DTI_Phantom-SNR1000.npy',
              strtag = ['spatial','spatial'],
