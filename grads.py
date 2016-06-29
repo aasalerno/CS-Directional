@@ -72,15 +72,15 @@ def gObj(x,N,
     # back into image space
     x0 = x.reshape(N)
     data_from_scanner.shape = N
-    x_data = samp_mask*tf.fft2c(x0); # Issue, feeding in 3D data to a 2D fft alg...
+    x_data = np.fft.fftshift(samp_mask)*tf.fft2c(x0); # Issue, feeding in 3D data to a 2D fft alg...
     grad = 2*tf.ifft2c(data_from_scanner - x_data);
     
     return grad
 
 def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1e-15):
     
-    x0 = im.reshape(N)
-    grad = np.zeros(N)
+    x0 = x.reshape(N)
+    grad = np.zeros(np.hstack([len(strtag),N]))
     TV_data = tf.TV(x0,N,strtag,dirWeight,dirs,nmins,M)
     k = 0.5
     
@@ -88,7 +88,7 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
         if strtag[i] == 'spatial':
             grad[i,:,:] = np.tanh(k*TV_data[i,:,:])
         elif strtag[i] == 'diff':
-            # Do stuff for directional data
+            None  # Do stuff for directional data
     
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
