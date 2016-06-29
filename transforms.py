@@ -29,7 +29,7 @@ def xfm(data_to_xfm,scaling_factor = 4,L = 2):
 
 def ixfm(data_to_ixfm,scaling_factor = 4,L = 2):
     h = daubcqf(scaling_factor)[0]
-    IXFMdata = idwt(data_to_ixfm,h,L)
+    IXFMdata = idwt(data_to_ixfm,h,L)[0]
     return IXFMdata
 
 def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
