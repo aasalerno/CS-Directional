@@ -30,7 +30,7 @@ def derivative_fun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = Non
     '''
     gObj = grads.gObj(x,N,data,k) # Calculate the obj function
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
-    gXFM = tv.ixfm(grads.gXFM(tv.xfm(x),N)) # Calculate the wavelet gradient
+    gXFM = tf.ixfm(grads.gXFM(tf.xfm(x),N)) # Calculate the wavelet gradient
     x.shape = (x.size,)
     return -(gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
@@ -44,7 +44,7 @@ def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins 
     obj = np.sum(obj_data*obj_data.conj()) #L2 Norm
     tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
     xfm = np.sum(abs(tf.xfm(x,scaling_factor,L))) #L1 Norm
-    x.shape = (x.size,)
+    x.shape = (x.size,) # Not the most efficient way to do this, but we need the shape to reset.
     data.shape = (data.size,)
     print('obj: %.2f' % abs(obj))
     print('tv: %.2f' % abs(lam1*tv))
@@ -97,20 +97,29 @@ def recon_CS(filename =
              method = 'CG',
              dirFile = None,
              nmins = None): # = 4):
+             
+    # Here we set the seed of the random number generator in order to ensure that
+    # we get the same map when we do our undersampling
     np.random.seed(2000)
+    
+    # Load in the image
     im = np.load(filename)
     # im = im + 0.1*(np.random.normal(size=[256,256]) + 1j*np.random.normal(size = [256,256])) # For the simplest case right now
-    strtag = strtag.lower()
+    
+    # Set the string tags for the dimensions to be all lower case for comparison in TV operator
+    for i in range(len(strtag)):
+        strtag[i] = strtag[i].lower()
 
+    # Set up some variables for future use.
     N = np.array(im.shape) #image Size
     tupleN = tuple(N)
     pctg = 0.25 # undersampling factor
     P = 5 # Variable density polymonial degree
-    #TVWeight = 0.01 # Weight for TV penalty
-    #xfmWeight = 0.01 # Weight for Transform L1 penalty
-    #Itnlim = 8 # Number of iterations
     
-    pdf = samp.genPDF(N,P,pctg,radius = 0.1,cyl=[0])
+    
+    # Generate the PDF for the sampling case -- note that this type is only used in non-directionally biased cases.
+    pdf = samp.genPDF(N,P,pctg,radius = 0.1,cyl=[0]) # Currently not working properly for the cylindrical case -- can fix at home
+    # Set the sampling pattern -- checked and this gives the right percentage
     k = samp.genSampling(pdf,10,60)[0].astype(int)
     
     # Diffusion information that we need
@@ -121,19 +130,21 @@ def recon_CS(filename =
         dirs = None
         M = None
     
+    # Here is where we build the undersampled data
     data = np.fft.ifftshift(k)*tf.fft2c(im)
     #ph = phase_Calculation(im,is_kspace = False)
     #data = np.fft.ifftshift(np.fft.fftshift(data)*ph.conj());
     
-    # "Data from the scanner"
+    # IMAGE from the "scanner data"
     im_scan = tf.ifft2c(data)
     
     # Primary first guess. What we're using for now. Density corrected
     im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)).flatten().copy()
     
-    # Optimization
+    # Optimization algortihm -- this is where everything culminates together
     im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
     
+    # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size -- N
     return im_result
     
 if __name__ == "__main__":
