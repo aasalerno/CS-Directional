@@ -86,7 +86,7 @@ def genPDF(img_sz,
         img_sz_hold = cyl[1:]
         cir = True
         
-        if (tuple(img_sz_hold) == img_sz):
+        if np.all(img_sz_hold == img_sz):
             zpad_mat = False
         else:
             zpad_mat = True
@@ -105,7 +105,7 @@ def genPDF(img_sz,
     sy = img_sz_hold[1]
     PCTG = int(np.floor(pctg*sx*sy))
     
-    if sum(img_sz_hold == 1) == 0: #2D case
+    if np.sum(np.array(img_sz_hold == 1,dtype='int')) == 0: #2D case
         [x,y] = np.meshgrid(np.linspace(-1,1,sy),np.linspace(-1,1,sx))
         if l_norm == 1:
             r = abs(np.array([x,y])).max(0)
@@ -142,6 +142,7 @@ def genPDF(img_sz,
     
     if zpad_mat:
         pdf = zpad(img_sz,pdf)
+    
     
     if disp:
         plt.figure
