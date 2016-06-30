@@ -40,8 +40,8 @@ def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins 
     '''
     data.shape = N
     x.shape = N
-    obj_data = tf.ifft2c(data - k*tf.fft2c(x))
-    obj = np.sum(obj_data*obj_data.conj()) #L2 Norm
+    obj_data = tf.ifft2c(data - np.fft.fftshift(k)*tf.fft2c(x))
+    obj = np.sqrt(np.sum(obj_data*obj_data.conj())) #L2 Norm
     tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
     xfm = np.sum(abs(tf.xfm(x,scaling_factor,L))) #L1 Norm
     x.shape = (x.size,) # Not the most efficient way to do this, but we need the shape to reset.
