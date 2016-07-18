@@ -66,16 +66,14 @@ def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
     
     return res
 
-def matlab_style_gauss2D(shape=(3,3),sigma=0.5):
+def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
     """
     2D gaussian mask - should give the same result as MATLAB's
     fspecial('gaussian',[shape],[sigma])
     """
-    m,n = [(ss-1.)/2. for ss in shape]
-    y,x = np.ogrid[-m:m+1,-n:n+1]
-    h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
-    h[ h < np.finfo(h.dtype).eps*h.max() ] = 0
-    sumh = h.sum()
-    if sumh != 0:
-        h /= sumh
-    return h
+    import cv2
+    
+    filtdata = cv2.GaussianBlur(im,shape,sigmaX = sigmaX)
+    ph = np.conj(filtdata)/(abs(filtdata)+EPS)
+    
+    return ph
