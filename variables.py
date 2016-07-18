@@ -39,6 +39,7 @@ N = np.array(im.shape) #image Size
 tupleN = tuple(N)
 pctg = 0.25 # undersampling factor
 P = 5 # Variable density polymonial degree
+ph = tf.matlab_style_gauss2D(im,shape=(5,5));
 
 pdf = samp.genPDF(N,P,pctg,radius = 0.1,cyl=[0]) # Currently not working properly for the cylindrical case -- can fix at home
 # Set the sampling pattern -- checked and this gives the right percentage
@@ -53,18 +54,18 @@ else:
     M = None
 
 # Here is where we build the undersampled data
-data = np.fft.ifftshift(k)*tf.fft2c(im)
+data = np.fft.ifftshift(k)*tf.fft2c(im,ph)
 #ph = phase_Calculation(im,is_kspace = False)
 #data = np.fft.ifftshift(np.fft.fftshift(data)*ph.conj());
 
 # IMAGE from the "scanner data"
-im_scan = tf.ifft2c(data)
+im_scan = tf.ifft2c(data,ph)
 
 # Primary first guess. What we're using for now. Density corrected
-im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)).flatten().copy()
+im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph).flatten().copy()
 
 # Optimization algortihm -- this is where everything culminates together
-im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
+im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L,ph),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
 
 # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size -- N
 return im_result

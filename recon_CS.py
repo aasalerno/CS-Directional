@@ -24,23 +24,23 @@ from scipy import optimize as opt
 
 EPS = np.finfo(float).eps
 
-def derivative_fun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins = 0, scaling_factor = 4,L = 2):
+def derivative_fun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0, scaling_factor = 4,L = 2):
     '''
     This is the function that we're going to be optimizing via the scipy optimization pack. This is the function that represents Compressed Sensing
     '''
-    gObj = grads.gObj(x,N,data,k) # Calculate the obj function
+    gObj = grads.gObj(x,N,ph,data,k) # Calculate the obj function
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
     gXFM = tf.ixfm(grads.gXFM(tf.xfm(x),N)) # Calculate the wavelet gradient
     x.shape = (x.size,)
     return -(gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
-def optfun(x,N,lam1,lam2,data,k,strtag,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
+def optfun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
     '''
     This is the optimization function that we're trying to optimize. We are optimizing x here, and testing it within the funcitons that we want, as called by the functions that we've created
     '''
     data.shape = N
     x.shape = N
-    obj_data = tf.ifft2c(data - np.fft.fftshift(k)*tf.fft2c(x))
+    obj_data = tf.ifft2c(data - np.fft.fftshift(k)*tf.fft2c(x,ph),ph)
     obj = np.sqrt(np.sum(obj_data*obj_data.conj())) #L2 Norm
     tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
     xfm = np.sum(abs(tf.xfm(x,scaling_factor,L))) #L1 Norm
@@ -115,7 +115,7 @@ def recon_CS(filename =
     tupleN = tuple(N)
     pctg = 0.25 # undersampling factor
     P = 5 # Variable density polymonial degree
-    
+    ph = tf.matlab_style_gauss2D(im,shape=(5,5));
     
     # Generate the PDF for the sampling case -- note that this type is only used in non-directionally biased cases.
     pdf = samp.genPDF(N,P,pctg,radius = 0.1,cyl=[0]) # Currently not working properly for the cylindrical case -- can fix at home
@@ -131,20 +131,20 @@ def recon_CS(filename =
         M = None
     
     # Here is where we build the undersampled data
-    data = np.fft.ifftshift(k)*tf.fft2c(im)
+    data = np.fft.ifftshift(k)*tf.fft2c(im,ph=ph)
     #ph = phase_Calculation(im,is_kspace = False)
     #data = np.fft.ifftshift(np.fft.fftshift(data)*ph.conj());
     
     # IMAGE from the "scanner data"
-    im_scan = tf.ifft2c(data)
+    im_scan = tf.ifft2c(data,ph=ph)
     
     # Primary first guess. What we're using for now. Density corrected
-    im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf)).flatten().copy()
+    im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph=ph).flatten().copy()
     
     # Optimization algortihm -- this is where everything culminates together
-    im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
+    im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
     
-    # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size -- N
+    # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size --
     return im_result
     
 if __name__ == "__main__":

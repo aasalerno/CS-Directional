@@ -43,7 +43,7 @@ def gXFM(x,N,
     grad = p*x0*(x0*x0.conj()+l1smooth)**(p/2.0-1)
     return grad
 
-def gObj(x,N,
+def gObj(x,N,ph,
          data_from_scanner,
          samp_mask):
     '''
@@ -72,8 +72,8 @@ def gObj(x,N,
     # back into image space
     x0 = x.reshape(N)
     data_from_scanner.shape = N
-    x_data = np.fft.fftshift(samp_mask)*tf.fft2c(x0); # Issue, feeding in 3D data to a 2D fft alg...
-    grad = 2*tf.ifft2c(data_from_scanner - x_data);
+    x_data = np.fft.fftshift(samp_mask)*tf.fft2c(x0,ph); # Issue, feeding in 3D data to a 2D fft alg...
+    grad = 2*tf.ifft2c(data_from_scanner - x_data,ph);
     
     return grad
 

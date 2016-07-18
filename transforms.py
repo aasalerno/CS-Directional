@@ -14,12 +14,14 @@ from rwt import dwt, idwt
 from rwt.wavelets import daubcqf
 import direction as d
 
-def fft2c(data_to_fft,axes=(-2,-1)):
-    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fft2(data_to_fft,axes=axes)
+EPS = np.finfo(float).eps
+
+def fft2c(data_to_fft,ph,axes=(-2,-1)):
+    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fft2(data_to_fft*ph,axes=axes);
     return FFTdata
 
-def ifft2c(data_to_ifft,axes=(-2,-1)):
-    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)
+def ifft2c(data_to_ifft,ph,axes=(-2,-1)):
+    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*ph;
     return IFFTdata
 
 def xfm(data_to_xfm,scaling_factor = 4,L = 2):
@@ -73,7 +75,7 @@ def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
     """
     import cv2
     
-    filtdata = cv2.GaussianBlur(im,shape,sigmaX = sigmaX)
+    filtdata = cv2.GaussianBlur(im.real*1,shape,sigmaX) + cv2.GaussianBlur(im.imag*1,shape,sigmaX)*1j;
     ph = np.conj(filtdata)/(abs(filtdata)+EPS)
     
     return ph
