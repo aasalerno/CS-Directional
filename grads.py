@@ -6,6 +6,7 @@
 from __future__ import division
 import numpy as np
 import transforms as tf
+import matplotlib.pyplot as plt
 
 
 def gXFM(x,N,
@@ -73,6 +74,7 @@ def gObj(x,N,ph,
     x0 = x.reshape(N)
     data_from_scanner.shape = N
     x_data = np.fft.fftshift(samp_mask)*tf.fft2c(x0,ph); # Issue, feeding in 3D data to a 2D fft alg...
+    
     grad = 2*tf.ifft2c(data_from_scanner - x_data,ph);
     
     return grad
@@ -85,19 +87,21 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
     k = 0.5
     
     for i in xrange(len(strtag)):
-        if strtag[i] == 'spatial':
-            grad[i,:,:] = np.tanh(k*TV_data[i,:,:])
-        elif strtag[i] == 'diff':
-            None  # Do stuff for directional data
+       if strtag[i] == 'spatial':
+           TV_dataRoll = np.roll(TV_data[i,:,:],1,axis=i)
+           grad[i,:,:] = -np.tanh(k*TV_data[i,:,:]) + np.tanh(k*TV_dataRoll)
+       elif strtag[i] == 'diff':
+           None  # Do stuff for directional data
     
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
     # I'll have to implement 3D data work soon.
     
     #for i in xrange(1):
-        #Dx = tf.TV(x)
+        #Dx = tf.TV(x0,N,strtag)
         #G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
         #grad = tf.iTV(G)
-    
+        ##import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace();
     grad = np.sum(grad,axis=0)
     return grad
