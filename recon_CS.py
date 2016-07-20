@@ -21,6 +21,7 @@ import grads
 import sampling as samp
 import direction as d
 from scipy import optimize as opt
+plt.rcParams['image.cmap'] = 'gray'
 
 EPS = np.finfo(float).eps
 
@@ -32,7 +33,7 @@ def derivative_fun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = 
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
     gXFM = tf.ixfm(grads.gXFM(tf.xfm(x),N)) # Calculate the wavelet gradient
     x.shape = (x.size,)
-    return -(gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
+    return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
 def optfun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
     '''
@@ -142,9 +143,13 @@ def recon_CS(filename =
     im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph=ph).flatten().copy()
     
     # Optimization algortihm -- this is where everything culminates together
-    im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,scaling_factor,L),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
+    args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,scaling_factor,L)
+    im_result = opt.minimize(optfun, im_dc, args = args,method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
+    im_res = im_result['x'].reshape(256,256);
     
     # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size --
+    #import pdb; pdb.set_trace();
+    # return {'im_result': im_result, 'im_dc': im_dc, 'im_scan': im_scan}
     return im_result
     
 if __name__ == "__main__":
