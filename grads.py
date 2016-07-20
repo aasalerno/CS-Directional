@@ -84,7 +84,7 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
     x0 = x.reshape(N)
     grad = np.zeros(np.hstack([len(strtag),N]))
     TV_data = tf.TV(x0,N,strtag,dirWeight,dirs,nmins,M)
-    k = 0.5
+    k = 5
     
     for i in xrange(len(strtag)):
        if strtag[i] == 'spatial':
@@ -102,6 +102,6 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
         #G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
         #grad = tf.iTV(G)
         ##import pdb; pdb.set_trace()
-    import pdb; pdb.set_trace();
+    #import pdb; pdb.set_trace();
     grad = np.sum(grad,axis=0)
     return grad

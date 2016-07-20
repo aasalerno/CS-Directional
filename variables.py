@@ -68,4 +68,4 @@ im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph).flatten().copy()
 im_result = opt.minimize(optfun, im_dc, args = (N,TVWeight,XFMWeight,data,k,strtag,dirWeight,dirs,M,nmins,scaling_factor,L,ph),method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
 
 # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size -- N
-return im_result
+return im_result, im_dc, im_scan
