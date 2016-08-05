@@ -44,7 +44,7 @@ def unique_rows(a):
     unique_a = np.unique(a.view([('', a.dtype)]*a.shape[1]))
     return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
     
-def zpad(res_sz,orig_data):
+def zpad(orig_data,res_sz):
     res_sz = np.array(res_sz)
     orig_sz = np.array(orig_data.shape)
     padval = np.ceil((res_sz-orig_sz)/2)
@@ -144,7 +144,7 @@ def genPDF(img_sz,
             break;
 
     if zpad_mat:
-        pdf = zpad(img_sz,pdf)
+        pdf = zpad(pdf,img_sz)
 
 
     if disp:
@@ -201,124 +201,129 @@ def genSamplingDir(img_sz = [256,256],
                 engfile = None):
     
     import itertools
-    dirs = np.genfromtxt(dirFile, delimiter = '\t')
+    # load the directions
+    dirs = np.loadtxt(dirFile) 
     n = int(dirs.shape[0])
     r = np.zeros([n,n])
 
-    for i in xrange(n):
-        if dirs[i,2] < 0:
-            dirs[i,:] = -dirs[i,:]
-            
+    # Push everything onto one half sphere
+    #    for i in xrange(n):
+    #        if dirs[i,2] < 0:
+    #            dirs[i,:] = -dirs[i,:]
+
+    # Calculate the distance. Do it for both halves of the sphere
     for i in xrange(n):
         for j in xrange(n):
-            r[i,j] = np.sqrt(np.sum((dirs[i,:] - dirs[j,:])**2))
-            r[i,j] = min(np.sqrt(np.sum((-dirs[i,:] - dirs[j,:])**2)),r[i,j])
+            r[i,j] = min(np.sqrt(np.sum((-dirs[i,:] - dirs[j,:])**2)),np.sqrt(np.sum((dirs[i,:] - dirs[j,:])**2)))
 
     invR = 1/(r+EPS)
 
     # Find all of the possible combinations of directions
-    k = int(np.floor(n*pctg))
-    combs = np.array(list(itertools.combinations(range(1,n+1),k)))
-    vecs = np.array(list(itertools.combinations(range(1,k+1),2)))
-    engStart = np.zeros([combs.shape[0]])
+    k = int(np.floor(n*pctg)) # How many "directions" will have a point in k space
+    combs = np.array(list(itertools.combinations(range(0,n),k))) # All the different vector combinations
+    vecs = np.array(list(itertools.combinations(range(0,k),2))) # All the different combos that need to be checked for the energy
+    engStart = np.zeros([combs.shape[0]]) # Initialization for speed of the energy
 
     # Run the "Potential energy" for each of the combinations
     if 'engFile' not in locals():
         for i in xrange(combs.shape[0]):
             for j in xrange(vecs.shape[0]):
-                engStart[i] = engStart[i] + invR[combs[i,vecs[j,0]-1]-1,combs[i,vecs[j,1]-1]-1]
+                engStart[i] = engStart[i] + invR[combs[i,vecs[j,0]],combs[i,vecs[j,1]]]
     else:
         engStart = np.load(engFile)
         # npy file
-    
+
     # Build the best cases of trying to get the vectors together
-    ind = engStart.argsort()
-    eng = engStart[ind]
-    vecsind = combs[ind,]
-    locs = np.zeros([n,nmins])
-    vecsMin = np.zeros([k,n*nmins])
-    
+    ind = engStart.argsort() # Sort from lowest energy (farthest apart) to highest
+    eng = engStart[ind] # Again, sort
+    vecsInd = combs[ind,] # This tells us the vectors that we're going to be using for our mins
+    locs = np.zeros([n,nmins]) # This gives us the mins for our individual vectors
+    vecsMin = np.zeros([k,n*nmins]) 
+
     # Look for the locations where the indicies exist first (that is, they are the smallest)
     # and input those as the vectors we want to use
     for i in range(n):
-        locs[i,] = np.array(np.where(vecsind == i+1))[0,0:nmins]
-        vecsMin[...,nmins*i:nmins*(i+1)] = vecsind[locs[i,].astype(int),...].T-1
-    
+        locs[i,] = np.array(np.where(vecsInd == i))[0,0:nmins]
+        vecsMin[:,nmins*i:nmins*(i+1)] = vecsInd[locs[i,].astype(int),:].T
+
+    # Only keep those rows that are unique
     vecsMin = unique_rows(vecsMin.T).astype(int)
     amts = np.zeros(n)
-    
+
+    # Count how often each direction gets pulled
     for i in xrange(n):
         amts[i] = vecsMin[vecsMin == i].size
-        
     srt = amts.argsort()
     cts = amts[srt]
-    
+
+    # Make sure we only look at the lowest 20% of the energies
     qEng = np.percentile(eng,20)
-    
+
     # if theres a huge difference, tack more of the lower counts on, but make sure that we aren't hitting too high energy sets
+
+    #vecsUnique,vecs_idx = np.unique(vecsInd,return_index = True)
     
-    vecsUnique,vecs_idx = np.unique(vecsind,return_index = True)
     
-    while cts[-1]/cts[0] >= 1.1:
-        srt_hold = np.reshape(srt.copy(),(1,len(srt)))[0,:k]+1
+    while cts[-1]/cts[0] >= 1.25:
+        srt_hold = srt.copy().reshape(1,len(srt))[0,:k]
         srt_hold.sort()
         # We need to add one here as index and direction number differ by a value of one
-        indx = np.where(np.all(srt_hold == vecsind,axis = 1)) 
-        
+        indx = np.where(np.all(srt_hold == vecsInd,axis = 1)) 
+        #import pdb; pdb.set_trace();
         if eng[indx] < qEng:
             vecsMin = np.vstack([vecsMin,srt_hold])
         else:
-            while eng[indx] >= qEng:
-                arr = np.zeros(k)
-                cnt = 0
-                while not np.all(arr == 0):
-                    
-                    st = np.ceil(n*np.random.random(1))
-                    
-                    if not np.any(arr == st-1):
-                        arr[cnt] = st-1;
-                        
-                    
-                arr_hold = np.reshape(arr(),(1,len(srt)))[0,:k]+1
-                arr_hold.sort()
-                indx = np.where(np.all(arr_hold == vecsind,axis = 1))
+            while eng[indx] >= qEng: # Take this if the bottom ones are too big!
+                #import pdb; pdb.set_trace();
+                arr = np.zeros(k) # Create a holder array
+                cnt = 0 # Create an iterator
+                while np.any(arr == 0):
+                    st = np.ceil(n*np.random.random(1)) # A holder for the value
+                    if not np.any(arr == st): # Make sure that value doesn't already exist in the holder array
+                        arr[cnt] = st; # If it doesn't, add it
+                        cnt += 1 # Move to the next location
+                arr_hold = arr.copy().reshape((1,len(arr)))[0,:k]
+                arr_hold.sort() # Sort it out. Making sure it didn't end up too long
+                indx = np.where(np.all(arr_hold == vecsInd,axis = 1)) # find the index
+                if eng[indx] < qEng: # Make sure we oly add it if the indx is low enough
+                    vecsMin = np.vstack([vecsMin,arr_hold])
             
-            vecsMin = np.vstack([vecsMin,arr_hold])
-            for i in xrange(30):
-                amts[i] = vecsMin[vecsMin == i].size
-            srt = amts.argsort()
-            cts = amts[srt]
-            
-    for i in xrange(30):
-        amts[i] = vecsMin[vecsMin == i].size
+        for i in xrange(30):
+            amts[i] = vecsMin[vecsMin == i].size
+        srt = amts.argsort()
+        cts = amts[srt]
     
     # Now we have to finally get the sampling pattern from this!
     
     [x,y] = np.meshgrid(np.linspace(-1,1,img_sz[1]),np.linspace(-1,1,img_sz[0]))
     r = np.sqrt(x**2 + y**2)
     
+    # If not cylindrical, we need to have vals < 1
     if not cyl:
         r = r/np.max(abs(r))
         
-    [rows,cols] = np.where(r <= 1) and np.where(r > radius)
+    [rows,cols] = np.where((r <= 1).astype(int)*(r > radius).astype(int) == 1)
     [rx,ry] = np.where(r <= radius)
     
-    samp = np.zeros(hstack([img_sz,n]))
-    nSets = np.hstack([vecsMin.size, 1])
+    # Create our sampling mask
+    samp = np.zeros(np.hstack([n,img_sz]))
+    nSets = np.hstack([vecsMin.shape, 1])
     
-    for i in xrange(rows):
-        val = np.ceil(nSets*np.random.random(1))
-        choice = vecsMin[val,]
-        samp[rows[i],cols[i],choice] = 1
+    # Start making random choices for the values that require them
+    for i in xrange(len(rows)):
+        val = np.floor(nSets[0]*np.random.random(1)).astype(int)
+        choice = vecsMin[val,].astype(int)
+        samp[choice,rows[i],cols[i]] = 1
         
-    for i in xrange(rx.size):
-        samp[rx[i],ry[i],:] = 1
+    for i in xrange(len(rx)):
+        samp[:,rx[i],ry[i]] = 1
         
-    if endSize.shape != img_sz:
-        samp_final = np.zeros(np.hstack([endSize,n]))
+    if endSize != img_sz:
+        samp_final = np.zeros(np.hstack([n,endSize]))
         
         for i in xrange(n):
-            samp_final[...,...,i] = np.resize(zpad(samp[...,...,i].flat,endSize),np.hstack([endSize,1]))
+            samp_hold = zpad(samp[i,:,:].reshape(img_sz),endSize)
+            samp_final[i,:,:] = samp_hold.reshape(np.hstack([1,endSize]))
         
         samp = samp_final
     
