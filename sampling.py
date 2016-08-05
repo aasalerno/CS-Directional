@@ -16,6 +16,7 @@ import scipy as sp
 import sys
 import glob
 import matplotlib.pyplot as plt
+plt.rcParams['image.cmap'] = 'gray'
 import matplotlib as mpl
 import os.path
 
@@ -80,31 +81,30 @@ def genPDF(img_sz,
     minval = 0.0
     maxval = 1.0
     val = 0.5
-    
+
     # Check if we're doing cylindrical data, if so, change img_sz and note that we need to zero pad
     if cyl[0] == 1:
         img_sz_hold = cyl[1:]
         cir = True
-        
         if np.all(img_sz_hold == img_sz):
             zpad_mat = False
         else:
             zpad_mat = True
-            
     else:
         img_sz_hold = img_sz
         zpad_mat = False;
-    
+        outcyl = None;
+
     # If the size vector is only one value, add on another value
     if len(img_sz_hold) == 1:
         img_sz_hold = [img_sz_hold, 1]
-    
-    
+
+
     # How many of the datapoints do we have to look at?
     sx = img_sz_hold[0]
     sy = img_sz_hold[1]
     PCTG = int(np.floor(pctg*sx*sy))
-    
+
     if np.sum(np.array(img_sz_hold == 1,dtype='int')) == 0: #2D case
         [x,y] = np.meshgrid(np.linspace(-1,1,sy),np.linspace(-1,1,sx))
         if l_norm == 1:
@@ -113,7 +113,8 @@ def genPDF(img_sz,
             r = np.sqrt(x**2 + y**2)
             # Check if the data is cyl acquisition -- if so, make sure outside datapoints don't get chosen by setting r = 1
             if cyl[0]:
-                r[np.where(r > 1)] = 1
+                outcyl = np.where(r > 1)
+                r[outcyl] = 1
             else:
                 r = r/r.max()
     else: #1D
@@ -122,14 +123,16 @@ def genPDF(img_sz,
     idx = np.where(r < radius)
     pdf = pdf = (1-r)**p
     pdf[idx] = 1
-    
+
     if np.floor(np.sum(pdf))>PCTG:
         raise NameError('Polynomial too low. Would need to undersample DC. Increase P')
-    
+
     # Bisect the data to get the proper PDF values to allow for the optimal sampling pattern generation
     while(1):
         val = minval/2 + maxval/2;
         pdf = (1-r)**p + val
+        if outcyl:
+            pdf[outcyl] = 0
         pdf[np.where(pdf > 1)] = 1
         pdf[idx] = 1
         N = np.floor(np.sum(pdf));
@@ -139,23 +142,14 @@ def genPDF(img_sz,
             minval = val;
         else:
             break;
-    
+
     if zpad_mat:
         pdf = zpad(img_sz,pdf)
-    
-    
+
+
     if disp:
         plt.figure
-        plt.subplot(211) 
         plt.imshow(pdf)
-        plt.subplot(212)
-        if np.sum(img_sz_hold == 1) == 0:
-            plt.plot(pdf[len(pdf)/2:,])
-        else:
-            plt.subplot(212)
-            plt.plot(pdf)
-        
-        plt.show()
         
     return pdf
     

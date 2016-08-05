@@ -10,17 +10,17 @@ import scipy.ndimage.filters
 import grads
 import sampling as samp
 import direction as d
-from scipy import optimize as opt
-
+#from scipy import optimize as opt
+import optimize as opt
 
 filename = '/home/asalerno/Documents/pyDirectionCompSense/data/SheppLogan256.npy'
 strtag = ['spatial','spatial']
 TVWeight = 0.01
-XFMWeight = 0.01
+XFMWeight = 0
 dirWeight = 0
 #DirType = 2
 ItnLim = 150
-epsilon = 1
+epsilon = 1e-3
 l1smooth = 1e-15
 xfmNorm = 1
 scaling_factor = 4
