@@ -20,7 +20,8 @@ import scipy.ndimage.filters
 import grads
 import sampling as samp
 import direction as d
-from scipy import optimize as opt
+#from scipy import optimize as opt
+import optimize as opt
 plt.rcParams['image.cmap'] = 'gray'
 
 EPS = np.finfo(float).eps
@@ -33,8 +34,8 @@ def derivative_fun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = 
     gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
     gXFM = tf.ixfm(grads.gXFM(tf.xfm(x),N)) # Calculate the wavelet gradient
     x.shape = (x.size,)
-    #import pdb; pdb.set_trace();
-    return -(gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
+    import pdb; pdb.set_trace();
+    return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
 def optfun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
     '''
