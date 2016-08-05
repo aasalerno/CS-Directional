@@ -24,12 +24,12 @@ def ifft2c(data_to_ifft,ph,axes=(-2,-1)):
     IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*ph;
     return IFFTdata
 
-def xfm(data_to_xfm,scaling_factor = 4,L = 2):
+def xfm(data_to_xfm,scaling_factor = 2,L = 2): #Usually scaling_factor = 4, but for the haar, it's 2
     h = daubcqf(scaling_factor)[0]
     XFMdata = dwt(data_to_xfm,h,L)[0]
     return XFMdata
 
-def ixfm(data_to_ixfm,scaling_factor = 4,L = 2):
+def ixfm(data_to_ixfm,scaling_factor = 2,L = 2):
     h = daubcqf(scaling_factor)[0]
     IXFMdata = idwt(data_to_ixfm,h,L)[0]
     return IXFMdata
