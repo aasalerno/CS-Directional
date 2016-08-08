@@ -101,15 +101,14 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
-    
+        
         # Assume the data is coming in as image space data and pull out what we require
         Iq = x0[q,:,:]
         Ir = x0[r,:,:]
         nrow, ncol = Iq.shape
-    
+        
         #A = np.zeros(np.hstack([r.shape,3]))
         Irq = Ir - Iq # Iq will be taken from Ir for each part of axis 0
-    
         #Aleft = np.linalg.solve((A.T*A),A.T)
         #beta = np.zeros(np.hstack([Iq.shape,3]))
         
