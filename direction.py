@@ -92,35 +92,34 @@ def calc_Mid_Matrix(dirs,nmins):
 #def residuals(a,b):
 #    return 
     
-def least_Squares_Fitting(data,N,strtag,dirs,inds,M):
+def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
     
-    data0 = data.copy().reshape(N)
-    data.shape = N
+    x0 = x.copy().reshape(N)
     nmins = inds.shape[1]
     dirloc = strtag.index("diff")
-    data = np.rollaxis(data,dirloc)
+    x0 = np.rollaxis(x0,dirloc)
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
     
         # Assume the data is coming in as image space data and pull out what we require
-        Iq = data[q,:,:]
-        Ir = data[r,:,:]
+        Iq = x0[q,:,:]
+        Ir = x0[r,:,:]
         nrow, ncol = Iq.shape
     
         #A = np.zeros(np.hstack([r.shape,3]))
-        Irq = Ir - Iq.reshape(1,nrow,ncol).repeat(nmins,0)
+        Irq = Ir - Iq # Iq will be taken from Ir for each part of axis 0
     
         #Aleft = np.linalg.solve((A.T*A),A.T)
         #beta = np.zeros(np.hstack([Iq.shape,3]))
         
-        Gdiffsq = np.zeros(np.hstack([dirs.shape[0], nrow, ncol]))
+        Gdiffsq = np.zeros(N)
         
         for i in xrange(nrow):
             for j in xrange(ncol):
-                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:].reshape(nmins,nmins)),Irq[:,i,j].reshape(nmins,1))
+                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:]),Irq[:,i,j].reshape(nmins,1))
     
     # This line puts the data back into the orientation that it was in before
-    Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc+1)
+    Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)
     
     return Gdiffsq
