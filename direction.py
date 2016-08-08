@@ -68,18 +68,20 @@ def calc_Mid_Matrix(dirs,nmins):
     
     The return is an nDirs x nMins x nMins matrix where m is the number of directions that we have in the dataset.
     '''
-    inds = dot_product_with_mins(dirs,nmins)
-    #dirs = np.loadtxt(filename)
     
-    M = np.zeros([dirs.shape[0],nmins,nmins])
-    
+    for i in range(30):
+        if dirs[i,2] < 0:
+            dirs[i,:] = -dirs[i,:]
+
+        inds = dot_product_with_mins(dirs,nmins)
+        #dirs = np.loadtxt(filename)
+        
+        M = np.zeros([dirs.shape[0],nmins,nmins])
+        
     for qDir in xrange(dirs.shape[0]):
-        A = np.array([])
-        A.shape = (nmins,0)
-        for dirComp in xrange(dirs.shape[1]):
-            datHold = np.reshape(dirs[inds[qDir,:],dirComp]-dirs[qDir,dirComp],(nmins,1))
-            datHold = datHold/np.linalg.norm(datHold) # Should I do this? Normalizes the vectors
-            A = np.hstack([A, datHold])
+        A = dirs[inds[qDir,:],:]-dirs[qDir,:]
+        #datHold = datHold/np.linalg.norm(datHold) # Should I do this? Normalizes the vectors
+        #A = np.hstack([A, datHold])
         # I apologize for how messy this is
         Ahat = np.dot(inv(np.dot(A.T,A)),A.T)
         M[qDir,:,:] = np.dot(Ahat.T,Ahat)
@@ -92,6 +94,7 @@ def calc_Mid_Matrix(dirs,nmins):
     
 def least_Squares_Fitting(data,N,strtag,dirs,inds,M):
     
+    data0 = data.copy().reshape(N)
     data.shape = N
     nmins = inds.shape[1]
     dirloc = strtag.index("diff")
