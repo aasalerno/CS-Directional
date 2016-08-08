@@ -80,35 +80,35 @@ def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
     
     return ph
     
-def iDx(data,shp):
-   res = data[np.hstack([0,range(shp[0]-1)]),:] - data
-   res[0,:] = -data[0,:]
-   res[-1,:] = data[-2,:]
-   return res
+#def iDx(data,shp):
+   #res = data[np.hstack([0,range(shp[0]-1)]),:] - data
+   #res[0,:] = -data[0,:]
+   #res[-1,:] = data[-2,:]
+   #return res
 
-def iDy(data,shp):
-   res = data[:,np.hstack([0,range(shp[1]-1)])] - data
-   res[:,0] = -data[:,0]
-   res[:,-1] = data[:,-2]
-   return res
+#def iDy(data,shp):
+   #res = data[:,np.hstack([0,range(shp[1]-1)])] - data
+   #res[:,0] = -data[:,0]
+   #res[:,-1] = data[:,-2]
+   #return res
 
-def iDz(data,shp):
-   res = data[:,:,np.hstack([0,range(shp[2]-1)])] - data
-   res[:,:,0] = -data[:,:,0]
-   res[:,:,-1] = data[:,:,-2]
-   return res
+#def iDz(data,shp):
+   #res = data[:,:,np.hstack([0,range(shp[2]-1)])] - data
+   #res[:,:,0] = -data[:,:,0]
+   #res[:,:,-1] = data[:,:,-2]
+   #return res
 
-def iTV(data):
-   '''
-   Inverse of the finite differences sampling operation done. Attempting to build back
-   the data after it's been TV'd
-   Note that the input must be put in such that the stacking dimension is dimension 0
-   '''
+#def iTV(data):
+   #'''
+   #Inverse of the finite differences sampling operation done. Attempting to build back
+   #the data after it's been TV'd
+   #Note that the input must be put in such that the stacking dimension is dimension 0
+   #'''
    
-   shp = data.shape
-   res = iDx(data[0,:,:],shp[1:])+ iDy(data[1,:,:],shp[1:])
+   #shp = data.shape
+   #res = iDx(data[0,:,:],shp[1:])+ iDy(data[1,:,:],shp[1:])
    
-   if len(shp) == 4:
-       res = res + iDz(data[2,:,:,:],shp[1:])
+   #if len(shp) == 4:
+       #res = res + iDz(data[2,:,:,:],shp[1:])
    
-   return res
+   #return res
