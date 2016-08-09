@@ -68,25 +68,49 @@ def calc_Mid_Matrix(dirs,nmins):
     
     The return is an nDirs x nMins x nMins matrix where m is the number of directions that we have in the dataset.
     '''
-    
-    for i in range(30):
+    n = dirs.shape[0]
+    for i in range(n):
         if dirs[i,2] < 0:
             dirs[i,:] = -dirs[i,:]
 
         inds = dot_product_with_mins(dirs,nmins)
         #dirs = np.loadtxt(filename)
         
-        M = np.zeros([dirs.shape[0],nmins,nmins])
+        M = np.zeros([n,nmins,nmins])
         
-    for qDir in xrange(dirs.shape[0]):
+    for qDir in xrange(n):
         A = dirs[inds[qDir,:],:]-dirs[qDir,:]
         #datHold = datHold/np.linalg.norm(datHold) # Should I do this? Normalizes the vectors
         #A = np.hstack([A, datHold])
-        # I apologize for how messy this is
+        # Calculate Ahat, which is the solution to Ax = b, [(A'A)^(-1)*A']b = x
         Ahat = np.dot(inv(np.dot(A.T,A)),A.T)
         M[qDir,:,:] = np.dot(Ahat.T,Ahat)
     
-    return M
+    
+    # We need to take care of the positive and negatives of the images that we are using, since this system has a +/- aspect to the comparisons that occur
+    
+    # Make lists to hold the positive indicies and the negative ones
+    indsNeg = range(n)
+    indsPos = range(n)
+        
+    for kk in xrange(n):
+        indsNeg[kk] = [np.repeat(kk,nmins), range(nmins)]
+        indsPos[kk] = np.where(inds==kk)
+        
+    # dI, the derivative with respect to the Image. We need to now apply the +/-
+    dI = np.zeros([n,n,nmins])
+    dIM = np.zeros([n,nmins,n])
+    Ause = range(n)
+    
+    for kk in range(n):
+        dI[kk,indsNeg[kk][0],indsNeg[kk][1]] = -1
+        dI[kk,indsPos[kk][0],indsPos[kk][1]] = 1
+        Ause[kk] = np.where(np.any(dI[kk,:,:] != 0,axis=1))[0]
+        for d in xrange(len(Ause[kk])):
+            colUse = Ause[kk][d]
+            dIM[kk,:,colUse] = np.dot(dI[kk,colUse,:],M[colUse,:,:])
+    
+    return M, dIM, Ause
         
     
 #def residuals(a,b):
@@ -98,6 +122,7 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
     nmins = inds.shape[1]
     dirloc = strtag.index("diff")
     x0 = np.rollaxis(x0,dirloc)
+    Gdiffsq = np.zeros(N)
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
@@ -111,8 +136,6 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
         Irq = Ir - Iq # Iq will be taken from Ir for each part of axis 0
         #Aleft = np.linalg.solve((A.T*A),A.T)
         #beta = np.zeros(np.hstack([Iq.shape,3]))
-        
-        Gdiffsq = np.zeros(N)
         
         for i in xrange(nrow):
             for j in xrange(ncol):

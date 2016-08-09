@@ -79,7 +79,18 @@ def gObj(x,N,ph,
     
     return grad
 
-def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1e-15):
+def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, dirInfo = None, p = 1,l1smooth = 1e-15):
+    
+    if dirInfo:
+        M = dirInfo[0]
+        dIM = dirInfo[1]
+        Ause = dirInfo[2]
+        inds = dirInfo[3]
+    else:
+        M = None
+        dIM = None
+        Ause = None
+        inds = None
     
     x0 = x.reshape(N)
     grad = np.zeros(np.hstack([len(strtag),N]))
@@ -90,17 +101,23 @@ def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, M = None, p = 1,l1smooth = 1
            TV_dataRoll = np.roll(TV_data[i,:,:],1,axis=i)
            grad[i,:,:] = -np.tanh(k*(TV_data[i,:,:])) + np.tanh(k*(TV_dataRoll))
        elif strtag[i] == 'diff':
-           None  # Do stuff for directional data
+           for d in xrange(N[i]):
+               
+               dDirx = np.zeros(np.hstack([N,M.shape[1]])) # dDirx.shape = [nDirs,imx,imy,nmins]
+               
+                for ind_q in xrange(N[i]):
+                    for ind_r in xrange(M.shape[1]):
+                        dDirx[ind_q,:,:,ind_r] = x0[inds[ind_q,ind_r],:,:] - x0[ind_q,:,:]
+                                      
+               
+                for comb in xrange(len(Ause[kk])):
+                    colUse = Ause[dir][comb]
+                    for qr in xrange(M.shape[1]):
+                        grad[i,d,:,:] = np.dot(dIM[d,qr,colUse],dDirx[d,:,:,qr]) + grad[i,d,:,:] 
     
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
     # I'll have to implement 3D data work soon.
     
-    #for i in xrange(1):
-        #Dx = tf.TV(x0,N,strtag)
-        #G = p*Dx*(Dx*Dx.conj() + l1smooth)**(p/2-1)
-        #grad = tf.iTV(G)
-        ##import pdb; pdb.set_trace()
-    #import pdb; pdb.set_trace();
     grad = np.sum(grad,axis=0)
     return grad
