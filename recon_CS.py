@@ -128,10 +128,10 @@ def recon_CS(filename =
     # Diffusion information that we need
     if dirFile:
         dirs = np.loadtxt(dirFile)
-        M = d.calc_Mid_Matrix(dirs,nmins=4)
+        dirInfo = d.calc_Mid_Matrix(dirs,nmins=4)
     else:
         dirs = None
-        M = None
+        dirInfo = None
     
     # Here is where we build the undersampled data
     data = np.fft.ifftshift(k)*tf.fft2c(im,ph=ph)
@@ -145,7 +145,7 @@ def recon_CS(filename =
     im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph=ph).flatten().copy()
     
     # Optimization algortihm -- this is where everything culminates together
-    args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,scaling_factor,L)
+    args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,dirInfo,nmins,scaling_factor,L)
     im_result = opt.minimize(optfun, im_dc, args = args,method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
     im_res = im_result['x'].reshape(256,256);
     
