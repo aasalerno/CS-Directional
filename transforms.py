@@ -24,12 +24,12 @@ def ifft2c(data_to_ifft,ph,axes=(-2,-1)):
     IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*ph;
     return IFFTdata
 
-def xfm(data_to_xfm,wavelet = 'db1'): #Usually scaling_factor = 4, but for the haar, it's 2
-    XFMdata = pywt.wavedec2(data_to_xfm,wavelet,'sym')
+def xfm(data_to_xfm,wavelet = 'db2',mode='per'):
+    XFMdata = pywt.wavedec2(data_to_xfm,wavelet,mode)
     return XFMdata
 
-def ixfm(data_to_ixfm,wavelet = 'db1'):
-    IXFMdata = pywt.waverec2(data_to_ixfm,wavelet,'sym')
+def ixfm(data_to_ixfm,wavelet = 'db2',mode='per'):
+    IXFMdata = pywt.waverec2(data_to_ixfm,wavelet,mode)
     return IXFMdata
 
 def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
@@ -80,10 +80,9 @@ def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
 
 def toMatrix(x):
     ''' Go from [cAn, (cHn, cVn, cDn), ..., (cH1, cV1, cD1)] to a 2D image'''
-    
     ax = []
     for i in xrange(len(x)):
-        ax.append(xfmData[i][0].shape[0])
+        ax.append(x[i][0].shape[0])
         
     N = sum(ax)
     res = np.zeros([N,N])
