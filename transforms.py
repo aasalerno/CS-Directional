@@ -79,6 +79,8 @@ def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
     return ph
 
 def toMatrix(x):
+    ''' Go from [cAn, (cHn, cVn, cDn), ..., (cH1, cV1, cD1)] to a 2D image'''
+    
     ax = []
     for i in xrange(len(x)):
         ax.append(xfmData[i][0].shape[0])
@@ -99,6 +101,9 @@ def toMatrix(x):
         
 
 def fromMatrix(res,ax):
+    
+    ''' Go from a 2D image to [cAn, (cHn, cVn, cDn), ..., (cH1, cV1, cD1)]'''
+    
     
     x = []
     
