@@ -26,18 +26,20 @@ plt.rcParams['image.cmap'] = 'gray'
 
 EPS = np.finfo(float).eps
 
-def derivative_fun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0, scaling_factor = 4,L = 2):
+def derivative_fun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,wavelet="db1",mode="per",a=1.0):
     '''
     This is the function that we're going to be optimizing via the scipy optimization pack. This is the function that represents Compressed Sensing
     '''
     gObj = grads.gObj(x,N,ph,data,k) # Calculate the obj function
-    gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M) # Calculate the TV gradient
-    gXFM = tf.ixfm(grads.gXFM(tf.xfm(x),N)) # Calculate the wavelet gradient
+    gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,M,a=a) # Calculate the TV gradient
+    #gXFM = tf.ixfm(grads.gXFM(tf.xfm(x,wavelet),N)) # Calculate the wavelet gradient
+    #gXFM = grads.gXFM(x,N,wavelet=wavelet,mode=mode)
+    gXFM = 0.0
     x.shape = (x.size,)
-    import pdb; pdb.set_trace();
+    #import pdb; pdb.set_trace();
     return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
-def optfun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,scaling_factor = 4,L = 2):
+def optfun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,wavelet='db1',mode="per",a=1.0):
     '''
     This is the optimization function that we're trying to optimize. We are optimizing x here, and testing it within the funcitons that we want, as called by the functions that we've created
     '''
@@ -45,10 +47,17 @@ def optfun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmi
     x.shape = N
     obj_data = tf.ifft2c(data - np.fft.fftshift(k)*tf.fft2c(x,ph),ph)
     obj = np.sqrt(np.sum(obj_data*obj_data.conj())) #L2 Norm
-    tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
-    xfm = np.sum(abs(tf.xfm(x,scaling_factor,L))) #L1 Norm
+    #tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
+    tv = np.sum((1/a)*np.log(np.cosh(a*tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))))
+    #xfm cost calc
+    wvlt = tf.xfm(x,wavelet=wavelet,mode=mode)
+    xfm = np.sum(abs(wvlt[0]))
+    for i in xrange(1,len(wvlt)):
+        xfm += np.sum([np.sum(abs(wvlt[i][j])) for j in xrange(3)]) 
+    #tidy up?
     x.shape = (x.size,) # Not the most efficient way to do this, but we need the shape to reset.
     data.shape = (data.size,)
+    #output
     print('obj: %.2f' % abs(obj))
     print('tv: %.2f' % abs(lam1*tv))
     print('xfm: %.2f' % abs(lam2*xfm))
@@ -60,10 +69,9 @@ def phase_Calculation(data,is_kspace = 0,is_fftshifted = 0):
         data = tf.ifft2c(data)
         if is_fftshifted:
             data = np.ifftshift(data)
-        
-    F = tf.matlab_style_gauss2D(shape=(5,5),sigma=2)
+
     filtdata = sp.ndimage.uniform_filter(data,size=5)
-    return filtdata.conj()/(abs(filtdata)+EPS)
+    return exp(1.j*np.angle(filtdata)) 
 
     
 def gDir_lookupTable(inds):

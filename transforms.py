@@ -21,7 +21,7 @@ def fft2c(data_to_fft,ph,axes=(-2,-1)):
     return FFTdata
 
 def ifft2c(data_to_ifft,ph,axes=(-2,-1)):
-    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*ph;
+    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*np.conj(ph);
     return IFFTdata
 
 def xfm(data_to_xfm,wavelet = 'db2',mode='per'):
