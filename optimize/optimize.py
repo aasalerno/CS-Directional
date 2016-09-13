@@ -1157,7 +1157,7 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
                      _line_search_wolfe12(f, myfprime, xk, pk, gfk, old_fval,
                                           old_old_fval, c2=0.4)
             '''
-            alpha_k, fc, gc, old_fval = line_search_simpleback(f, myfprime, xk, pk, gfk,
+            alpha_k, fc, gc, old_fval, gfkp1 = line_search_simpleback(f, myfprime, xk, pk, gfk,
                                                                old_fval, alpha=1, c=0.6)
         except _LineSearchError:
             # Line search failed to find a better solution.

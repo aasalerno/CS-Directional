@@ -737,7 +737,7 @@ def line_search_simpleback(f,fprime,xk,pk,gfk=None,
                                                    alpha=alpha,c=c,amax=amax,amin=amin,xtol=xtol)
     
     
-    return stp, fc[0], gc[0], fval, old_fval, gval[0]
+    return stp, fc[0], gc[0], fval, gval[0]
     
 def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None,
                             alpha=1,c=0.6,amax=50,amin=1e-8,xtol=1e-14,maxiter = 30):
