@@ -797,6 +797,7 @@ def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None
         
     
     if phi1 < xtol:
+        task = b'SUCCESS'
         # Break to finish here
     '''
     if lsiter < 1:
