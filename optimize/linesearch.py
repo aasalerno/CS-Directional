@@ -652,3 +652,158 @@ def scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0):
 
     # Failed to find a suitable step length
     return None, phi_a1
+    
+
+# SALERNO WORK STARTS HERE
+# Line search using a simple backtracking algorithm 
+def line_search_simpleback(f,fprime,xk,pk,gfk=None,
+                           old_fval=None,alpha=1,c=0.6,
+                           amax=50,amin=1e-8,xtol=1e-14):
+    '''
+    Parameters
+    ----------
+    f : callable
+        Function `f(x)`
+    fprime : callable
+        Gradient of `f`
+    xk : array_like
+        Current point
+    pk : array_like
+        Search direction
+
+    gfk : array_like, optional
+        Gradient of `f` at point `xk`
+    old_fval : float, optional
+        Value of `f` at point `xk`
+    
+    phi : callable phi(alpha)
+        Function at point `alpha`
+    derphi : callable dphi(alpha)
+        Derivative `d phi(alpha)/ds`. Returns a scalar.
+
+    phi0 : float, optional
+        Value of `f` at 0
+    old_phi0 : float, optional
+        Value of `f` at the previous point
+    derphi0 : float, optional
+        Value `derphi` at 0
+    amax : float, optional
+        Maximum step size
+        
+    c1, c2 : float, optional
+        Wolfe parameters
+
+    Returns
+    -------
+    alpha : float
+        Step size, or None if no suitable step was found
+    phi : float
+        Value of `phi` at the new point `alpha`
+    phi0 : float
+        Value of `phi` at `alpha=0`
+    '''
+    
+    if gfk is None:
+        gfk = fprime(xk)
+    
+    if isinstance(fprime, tuple):
+        eps = fprime[1]
+        fprime = fprime[0]
+        newargs = (f, eps) + args
+        gradient = False
+    else:
+        newargs = args
+        gradient = True\
+        
+    gval = [gfk]
+    gc = [0]
+    fc = [0]
+    
+    def phi(s):
+        fc[0] += 1
+        return f(xk + s*pk, *newargs)
+        
+    def derphi(s):
+        gval[0] = fprime(xk + s*pk, *newargs)
+        if gradient:
+            gc[0] += 1
+        else:
+            fc[0] += len(xk) + 1
+        return np.dot(gval[0],pk)
+    
+    derphi0 = np.dot(gfk,pk)
+    
+    stp, fval, old_fval = scalar_search_simpleback(phi, derphi, old_fval, old_old_fval,
+                                                   alpha=alpha,c=c,amax=amax,amin=amin,xtol=xtol)
+    
+    
+    return stp, fc[0], gc[0], fval, old_fval, gval[0]
+    
+def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None,
+                            alpha=1,c=0.6,amax=50,amin=1e-8,xtol=1e-14,maxiter = 30):
+                                
+    '''
+    Scalar function search for alpha that satisfies simple backtracking algorithm
+
+    alpha > 0 is assumed to be a descent direction.
+    
+     Parameters
+    ----------
+    phi : callable phi(alpha)
+        Function at point `alpha`
+    derphi : callable dphi(alpha)
+        Derivative `d phi(alpha)/ds`. Returns a scalar.
+
+    phi0 : float, optional
+        Value of `f` at 0
+    old_phi0 : float, optional
+        Value of `f` at the previous point
+    derphi0 : float, optional
+        Value `derphi` at 0
+    amax : float, optional
+        Maximum step size
+    c1, c2 : float, optional
+        Wolfe parameters
+
+    Returns
+    -------
+    alpha : float
+        Step size, or None if no suitable step was found
+    phi : float
+        Value of `phi` at the new point `alpha`
+    phi0 : float
+        Value of `phi` at `alpha=0`
+        
+    '''
+    
+    if phi0 is None:
+        phi0 = phi(0.)
+    if derphi0 is None:
+        derphi0 = derphi(0.)
+    
+    phi1 = phi(alpha)
+    lsiter = 0
+    
+    while phi1 > phi0 + alpha*derphi0 and lsiter < maxiter:
+        lsiter += 1
+        alpha = c*alpha
+        phi1 = phi(alpha)
+    
+    if lsiter >= maxiter:
+        task = b'ERROR'
+        alpha = None # Failed
+    else:
+        task = b'FG'
+        
+    
+    if phi1 < xtol:
+        # Break to finish here
+    '''
+    if lsiter < 1:
+        alpha = alpha / c
+    elif lsiter > 2:
+        alpha = alpha * c
+    '''
+    
+    return alpha, phi1, phi0
+    
