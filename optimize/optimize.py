@@ -1142,7 +1142,6 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
     k = 0
     xk = x0
     old_fval = f(xk)
-    old_old_fval = None
 
     if retall:
         allvecs = [xk]
@@ -1153,9 +1152,13 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
         deltak = numpy.dot(gfk, gfk)
 
         try:
+            '''
             alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
                      _line_search_wolfe12(f, myfprime, xk, pk, gfk, old_fval,
                                           old_old_fval, c2=0.4)
+            '''
+            alpha_k, fc, gc, old_fval = line_search_simpleback(f, myfprime, xk, pk, gfk,
+                                                               old_fval, alpha=1, c=0.6)
         except _LineSearchError:
             # Line search failed to find a better solution.
             warnflag = 2
