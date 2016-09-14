@@ -573,6 +573,7 @@ def line_search_armijo(f, xk, pk, gfk, old_fval, args=(), c1=1e-4, alpha0=1):
     fc = [0]
 
     def phi(alpha1):
+        import pdb; pdb.set_trace()
         fc[0] += 1
         return f(xk + alpha1*pk, *args)
 
@@ -658,7 +659,7 @@ def scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0):
 # Line search using a simple backtracking algorithm 
 def line_search_simpleback(f,fprime,xk,pk,gfk=None,
                            old_fval=None,alpha=1,c=0.6,
-                           amax=50,amin=1e-8,xtol=1e-14):
+                           amax=50,amin=1e-8,xtol=1e-14,args=()):
     '''
     Parameters
     ----------
@@ -713,7 +714,7 @@ def line_search_simpleback(f,fprime,xk,pk,gfk=None,
         gradient = False
     else:
         newargs = args
-        gradient = True\
+        gradient = True
         
     gval = [gfk]
     gc = [0]
@@ -733,7 +734,7 @@ def line_search_simpleback(f,fprime,xk,pk,gfk=None,
     
     derphi0 = np.dot(gfk,pk)
     
-    stp, fval, old_fval = scalar_search_simpleback(phi, derphi, old_fval, old_old_fval,
+    stp, fval, old_fval = scalar_search_simpleback(phi, derphi, old_fval,
                                                    alpha=alpha,c=c,amax=amax,amin=amin,xtol=xtol)
     
     
@@ -798,7 +799,6 @@ def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None
     
     if phi1 < xtol:
         task = b'SUCCESS'
-        # Break to finish here
     '''
     if lsiter < 1:
         alpha = alpha / c

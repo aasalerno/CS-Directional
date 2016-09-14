@@ -32,7 +32,7 @@ import numpy
 from scipy.lib.six import callable
 from numpy import (atleast_1d, eye, mgrid, argmin, zeros, shape, squeeze,
                    vectorize, asarray, sqrt, Inf, asfarray, isinf)
-from .linesearch import (line_search_wolfe1, line_search_wolfe2,
+from .linesearch import (line_search_wolfe1, line_search_wolfe2, line_search_simpleback, line_search_armijo,
                          line_search_wolfe2 as line_search)
 
 
@@ -1157,8 +1157,14 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
                      _line_search_wolfe12(f, myfprime, xk, pk, gfk, old_fval,
                                           old_old_fval, c2=0.4)
             '''
+            import pdb; pdb.set_trace()
+            
             alpha_k, fc, gc, old_fval, gfkp1 = line_search_simpleback(f, myfprime, xk, pk, gfk,
-                                                               old_fval, alpha=1, c=0.6)
+                                                               old_fval, alpha=1, c=0.6,args=args)
+            
+            
+            #alpha_k, fc, gc, old_fval = line_search_armijo(f, xk, pk, gfk,                                                              old_fval, c1=0.6, alpha0=1)
+        
         except _LineSearchError:
             # Line search failed to find a better solution.
             warnflag = 2

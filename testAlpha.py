@@ -16,6 +16,18 @@ import scipy.optimize as spopt
 plt.rcParams['image.cmap'] = 'gray'
 from recon_CS import *
 
+def wrap_function(function, args):
+    ncalls = [0]
+    if function is None:
+        return ncalls, None
+
+    def function_wrapper(*wrapper_args):
+        ncalls[0] += 1
+        return function(*(wrapper_args + args))
+
+    return ncalls, function_wrapper
+
+
 # Initialization variables
 filename = '/home/asalerno/Documents/pyDirectionCompSense/data/SheppLogan256.npy'
 strtag = ['spatial','spatial']
@@ -69,10 +81,54 @@ im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph=ph).real.flatten().copy()
 # Optimization algortihm -- this is where everything culminates together
 a=10.0
 args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
-im_result = opt.minimize(optfun, im_dc, args = args, method=method, jac=derivative_fun, options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
-im_res = im_result['x'].reshape(N);
 
-plt.imshow(im,interpolation='nearest')
-plt.figure(2); plt.imshow(np.reshape(im_dc,(N)),interpolation='nearest')
-plt.figure(3); plt.imshow(im_res,interpolation='nearest')
+
+# Get things set to test alpha values
+f = optfun
+fprime = derivative_fun
+x0 = np.asarray(im_dc).flatten()
+
+func_calls, f = wrap_function(f, args)
+grad_calls, myfprime = wrap_function(fprime, args) # Wraps the derivative function
+gfk = myfprime(x0)
+k = 0
+xk = x0
+old_fval = f(xk)
+pk = -gfk # Here is where the -1 is applied -- thus I shouldn't apply it in mine
+newargs = args
+
+gradient = True
+
+gval = [gfk]
+gc = [0]
+fc = [0]
+
+def phi(s):
+    fc[0] += 1
+    return f(xk + s*pk, args)
+
+def derphi(s):
+    gval[0] = fprime(xk + s*pk, *newargs)
+    if gradient:
+        gc[0] += 1
+    else:
+        fc[0] += len(xk) + 1
+    return np.dot(gval[0], pk)
+
+derphi0 = np.dot(gfk, pk)
+
+def alpha_check(s):                                                                           
+    return optfun(xk+s*pk,N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
+    
+
+s = np.logspace(-8,1,1000)
+y = np.zeros(len(s))
+
+for i in xrange(len(s)):
+    y[i] = alpha_check(s[i])
+
+plt.plot(s,y,'.')
+plt.title('Objective Function Values')
+plt.xlabel('alpha')
+plt.ylabel('phi(alpha)')
 plt.show()
