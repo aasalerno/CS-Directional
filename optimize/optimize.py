@@ -30,8 +30,8 @@ __docformat__ = "restructuredtext en"
 import warnings
 import numpy
 from scipy.lib.six import callable
-from numpy import (atleast_1d, eye, mgrid, argmin, zeros, shape, squeeze,
-                   vectorize, asarray, sqrt, Inf, asfarray, isinf)
+from numpy import (atleast_1d, dot, eye, mgrid, argmin, zeros, shape, squeeze,
+                   vectorize, asarray, sqrt, Inf, asfarray, isinf, array, append)
 from .linesearch import (line_search_wolfe1, line_search_wolfe2, line_search_simpleback, line_search_armijo,
                          line_search_wolfe2 as line_search)
 
@@ -275,13 +275,12 @@ def wrap_function(function, args):
     ncalls = [0]
     if function is None:
         return ncalls, None
-
+   
     def function_wrapper(*wrapper_args):
         ncalls[0] += 1
         return function(*(wrapper_args + args))
 
     return ncalls, function_wrapper
-
 
 def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
          full_output=0, disp=1, retall=0, callback=None):
@@ -1100,7 +1099,7 @@ def fmin_cg(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf, epsilon=_epsilon,
 
 
 def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
-                 gtol=1e-5, norm=Inf, eps=_epsilon, maxiter=None,
+                 gtol=0.01, norm=Inf, eps=_epsilon, maxiter=None,
                  disp=False, return_all=False,
                  **unknown_options):
     """
@@ -1124,7 +1123,10 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
     is not supposed to be called directly.
     """
     #import pdb; pdb.set_trace()
-    _check_unknown_options(unknown_options)
+    #_check_unknown_options(unknown_options)
+    c = unknown_options['c']
+    alpha0 = unknown_options['alpha_0']
+    xtol = unknown_options['xtol']
     f = fun # Function
     fprime = jac # Derivative function
     epsilon = eps # Gradient tolerance
@@ -1142,25 +1144,32 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
     k = 0
     xk = x0
     old_fval = f(xk)
-
+    vals = array([])
+    cnt = 0
     if retall:
         allvecs = [xk]
     warnflag = 0
     pk = -gfk # Here is where the -1 is applied -- thus I shouldn't apply it in mine
     gnorm = vecnorm(gfk, ord=norm)
-    while (gnorm > gtol) and (k < maxiter):
-        deltak = numpy.dot(gfk, gfk)
-
+    alpha_k = 0
+    if c >= 1:
+        c = 0.6
+    old_pk = -gfk    
+    while (gnorm > gtol or max(abs(xdiff)) > xtol) and (k < maxiter):
+        #import pdb; pdb.set_trace()
+        deltak = dot(gfk, gfk)
+        vals = append(vals,deltak);
+        cnt += 1
+        old_fpval_hold = myfprime(x0 + alpha_k*pk)
+        old_fpval = dot(old_fpval_hold,-old_pk)
         try:
             '''
             alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
                      _line_search_wolfe12(f, myfprime, xk, pk, gfk, old_fval,
                                           old_old_fval, c2=0.4)
             '''
-            import pdb; pdb.set_trace()
             
-            alpha_k, fc, gc, old_fval, gfkp1 = line_search_simpleback(f, myfprime, xk, pk, gfk,
-                                                               old_fval, alpha=1, c=0.6,args=args)
+            alpha_k, fc, gc, old_fval, gfkp1, lsiter = line_search_simpleback(f, myfprime, xk, pk, gfk, old_fval, old_fpval = old_fpval, alpha=alpha0, c=c, args=args)
             
             
             #alpha_k, fc, gc, old_fval = line_search_armijo(f, xk, pk, gfk,                                                              old_fval, c1=0.6, alpha0=1)
@@ -1169,17 +1178,31 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
             # Line search failed to find a better solution.
             warnflag = 2
             break
-
-        xk = xk + alpha_k * pk
+        
+        # This makes sure that the value of alpha0 is always <= 1
+        if lsiter < 1:
+            if alpha0/c <= 1:
+                alpha0 = alpha0 / c
+        elif lsiter > 2:
+            alpha0 = alpha0 * c
+        
+        #pdb.set_trace();
+        xdiff = alpha_k * pk
+        xk = xk + xdiff
         if retall:
             allvecs.append(xk)
         if gfkp1 is None:
             gfkp1 = myfprime(xk)
+        
+        if dot(gfkp1,gfk) < 0:
+            alpha0 = alpha0/c**2
+            
         yk = gfkp1 - gfk
         beta_k = max(0, numpy.dot(yk, gfkp1) / deltak)
+        old_pk = pk.copy()
         pk = -gfkp1 + beta_k * pk
         gfk = gfkp1
-        gnorm = vecnorm(gfk, ord=norm)
+        gnorm = vecnorm(gfk, ord=norm) #This we need to try to find some way to kick out better ways
         if callback is not None:
             callback(xk)
         k += 1
@@ -1217,6 +1240,8 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
                             success=(warnflag == 0), message=msg, x=xk)
     if retall:
         result['allvecs'] = allvecs
+    
+    print('beta_k: %.2f' % abs(beta_k))
     return result
 
 
