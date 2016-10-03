@@ -80,7 +80,7 @@ im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph=ph).real.flatten().copy()
 
 # Optimization algortihm -- this is where everything culminates together
 a=10.0
-args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
+testargs = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
 
 
 # Get things set to test alpha values
@@ -88,14 +88,14 @@ f = optfun
 fprime = derivative_fun
 x0 = np.asarray(im_dc).flatten()
 
-func_calls, f = wrap_function(f, args)
-grad_calls, myfprime = wrap_function(fprime, args) # Wraps the derivative function
+func_calls, f1 = wrap_function(f, testargs)
+grad_calls, myfprime = wrap_function(fprime, testargs) # Wraps the derivative function
 gfk = myfprime(x0)
 k = 0
 xk = x0
-old_fval = f(xk)
+old_fval = f1(xk)
 pk = -gfk # Here is where the -1 is applied -- thus I shouldn't apply it in mine
-newargs = args
+newargs = testargs
 
 gradient = True
 
@@ -105,10 +105,10 @@ fc = [0]
 
 def phi(s):
     fc[0] += 1
-    return f(xk + s*pk, args)
+    return f1(xk + s*pk)
 
 def derphi(s):
-    gval[0] = fprime(xk + s*pk, *newargs)
+    gval[0] = fprime(xk + s*pk)
     if gradient:
         gc[0] += 1
     else:
@@ -117,8 +117,8 @@ def derphi(s):
 
 derphi0 = np.dot(gfk, pk)
 
-def alpha_check(s):                                                                           
-    return optfun(xk+s*pk,N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
+#def alpha_check(s):                                                                           
+    #return optfun(xk+s*pk,N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
     
 
 s = np.logspace(-8,1,1000)

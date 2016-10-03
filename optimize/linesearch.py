@@ -21,7 +21,9 @@ __all__ = ['line_search_wolfe1', 'line_search_wolfe2',
            'scalar_search_wolfe1', 'scalar_search_wolfe2',
            'line_search_armijo']
 
-
+class _LineSearchError(RuntimeError):
+    pass
+           
 #------------------------------------------------------------------------------
 # Minpack's Wolfe line and scalar searches
 #------------------------------------------------------------------------------
@@ -658,8 +660,8 @@ def scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0):
 # SALERNO WORK STARTS HERE
 # Line search using a simple backtracking algorithm 
 def line_search_simpleback(f,fprime,xk,pk,gfk=None,
-                           old_fval=None,alpha=1,c=0.6,
-                           amax=50,amin=1e-8,xtol=1e-14,args=()):
+                           old_fval=None, old_fpval = None,alpha=1,c=0.6,
+                           amax=50,amin=1e-8,gtol=1e-14,args=()):
     '''
     Parameters
     ----------
@@ -722,10 +724,10 @@ def line_search_simpleback(f,fprime,xk,pk,gfk=None,
     
     def phi(s):
         fc[0] += 1
-        return f(xk + s*pk, *newargs)
+        return f(xk + s*pk)
         
     def derphi(s):
-        gval[0] = fprime(xk + s*pk, *newargs)
+        gval[0] = fprime(xk + s*pk)
         if gradient:
             gc[0] += 1
         else:
@@ -734,14 +736,14 @@ def line_search_simpleback(f,fprime,xk,pk,gfk=None,
     
     derphi0 = np.dot(gfk,pk)
     
-    stp, fval, old_fval = scalar_search_simpleback(phi, derphi, old_fval,
-                                                   alpha=alpha,c=c,amax=amax,amin=amin,xtol=xtol)
+    stp, old_fval, old_old_fval, lsiter = scalar_search_simpleback(phi, derphi, phi0=old_fval,
+                                                  derphi0 = old_fpval, alpha = alpha, c = c, amax = amax, amin = amin)
     
     
-    return stp, fc[0], gc[0], fval, gval[0]
+    return stp, fc[0], gc[0], old_fval, fprime(xk+stp*pk), lsiter
     
 def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None,
-                            alpha=1,c=0.6,amax=50,amin=1e-8,xtol=1e-14,maxiter = 30):
+alpha=1,c=0.6,amax=50,amin=1e-8,maxiter = 30):
                                 
     '''
     Scalar function search for alpha that satisfies simple backtracking algorithm
@@ -781,30 +783,45 @@ def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None
         phi0 = phi(0.)
     if derphi0 is None:
         derphi0 = derphi(0.)
-    
+    #import pdb; pdb.set_trace()
     phi1 = phi(alpha)
     lsiter = 0
     
-    while phi1 > phi0 + alpha*derphi0 and lsiter < maxiter:
+    #while (phi1 > phi0 + c*alpha*derphi0) and lsiter < maxiter:
+        #import pdb; pdb.set_trace()
+        #lsiter += 1
+        #alpha = c*alpha
+        #phi1 = phi(alpha)
+    
+    # ----------------------------------------------------------------------
+    # Here, we do a line search where we cant to keep going as long as
+    # the next step point is LESS THAN the previous one. Once it starts
+    # to rise, we accept phi_best (not phi1 which is the test phi), and 
+    # push that step size out to the next step. We do it this way as a 
+    # redundancy to ensure that we aren't taking step sizes that are too big.
+    
+    
+    # Need to have a system that checks for if phi1 is larger than phi0, if so, check
+    # a few times to fix it, if that doesn't work, step in the opposite direction
+    #if phi1 > phi0:
+        #alpha = -alpha
+        #phi1 = phi(alpha)
+        #if pi1 > phi0:
+            #import warningsh
+            #warnings.warn('We are at a point where phi1 > phi0 in both directions')
+
+    phi_best = phi0
+    while (phi1 < phi_best) and lsiter < maxiter: # I worry that the max iter may be too large...
+        #import pdb; pdb.set_trace()
+        phi_best = phi1
         lsiter += 1
         alpha = c*alpha
         phi1 = phi(alpha)
-    
-    if lsiter >= maxiter:
-        task = b'ERROR'
-        alpha = None # Failed
-    else:
-        task = b'FG'
         
+    # ----------------------------------------------------------------------    
+    if lsiter >= maxiter:
+        # alpha = None # Failed
+        raise _LineSearchError()
     
-    if phi1 < xtol:
-        task = b'SUCCESS'
-    '''
-    if lsiter < 1:
-        alpha = alpha / c
-    elif lsiter > 2:
-        alpha = alpha * c
-    '''
-    
-    return alpha, phi1, phi0
+    return alpha, phi1, phi0, lsiter
     

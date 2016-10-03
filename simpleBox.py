@@ -69,10 +69,13 @@ im_dc = tf.ifft2c(data/np.fft.ifftshift(pdf),ph=ph).real.flatten().copy()
 # Optimization algortihm -- this is where everything culminates together
 a=10.0
 args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,M,nmins,wavelet,mode,a)
-im_result = opt.minimize(optfun, im_dc, args = args, method=method, jac=derivative_fun, options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
+im_result = opt.minimize(optfun, im_dc, args = args, method=method, jac=derivative_fun, options={'maxiter':ItnLim,'gtol':0.01,'disp':1,'alpha_0':0.5,'c':0.6,'xtol':5e-3})
 im_res = im_result['x'].reshape(N);
 
 plt.imshow(im,interpolation='nearest')
+plt.title('True Image')
 plt.figure(2); plt.imshow(np.reshape(im_dc,(N)),interpolation='nearest')
+plt.title('Original Image')
 plt.figure(3); plt.imshow(im_res,interpolation='nearest')
+plt.title('Final Result')
 plt.show()

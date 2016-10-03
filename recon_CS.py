@@ -154,7 +154,7 @@ def recon_CS(filename =
     
     # Optimization algortihm -- this is where everything culminates together
     args = (N,TVWeight,XFMWeight,data,k,strtag,ph,dirWeight,dirs,dirInfo,nmins,scaling_factor,L)
-    im_result = opt.minimize(optfun, im_dc, args = args,method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
+    im_result = opt.minimize(optfun, im_dc, args = args, method=method,jac=derivative_fun,options={'maxiter':ItnLim,'gtol':epsilon,'disp':1})
     im_res = im_result['x'].reshape(256,256);
     
     # im_result gives us a lot of information, what we really need is ['x'] reshaped to the required image size --
