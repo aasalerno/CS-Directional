@@ -16,6 +16,7 @@
 
 from __future__ import division, print_function, absolute_import
 import pdb
+import matplotlib.pyplot as plt
 
 # Minimization routines
 
@@ -32,6 +33,7 @@ import numpy
 from scipy.lib.six import callable
 from numpy import (atleast_1d, dot, eye, mgrid, argmin, zeros, shape, squeeze,
                    vectorize, asarray, sqrt, Inf, asfarray, isinf, array, append)
+import numpy as np
 from .linesearch import (line_search_wolfe1, line_search_wolfe2, line_search_simpleback, line_search_armijo,
                          line_search_wolfe2 as line_search)
 
@@ -1127,6 +1129,9 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
     c = unknown_options['c']
     alpha0 = unknown_options['alpha_0']
     xtol = unknown_options['xtol']
+    N = unknown_options['N']
+    TVWeight = unknown_options['TVWeight']
+    XFMWeight = unknown_options['XFMWeight']
     f = fun # Function
     fprime = jac # Derivative function
     epsilon = eps # Gradient tolerance
@@ -1154,8 +1159,9 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
     alpha_k = 0
     if c >= 1:
         c = 0.6
-    old_pk = -gfk    
-    while (gnorm > gtol or max(abs(xdiff)) > xtol) and (k < maxiter):
+    old_pk = -gfk
+    xdiff = xtol+1 # just to make sure xdiff is bigger
+    while (gnorm > gtol or np.max(abs(xdiff)) > xtol) and (k < maxiter):
         #import pdb; pdb.set_trace()
         deltak = dot(gfk, gfk)
         vals = append(vals,deltak);
@@ -1187,6 +1193,15 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
             alpha0 = alpha0 * c
         
         #pdb.set_trace();
+        #print("---------------------------------------")
+        saveFig = 0
+        #import pdb; pdb.set_trace()
+        if saveFig:
+            plt.savefig('gradimgs/allOn_grad_iter_TV_' + `TVWeight` + '_XFM_' + `XFMWeight` + '_' + `k` + '.png')
+            plt.close("all")
+            plt.imshow(xk.reshape(N))
+            plt.savefig('gradimgs/allOn_xk_iter_TV_' + `TVWeight` + '_XFM_' + `XFMWeight` + '_' + `k` + '.png')
+            plt.close("all")
         xdiff = alpha_k * pk
         xk = xk + xdiff
         if retall:
@@ -1228,13 +1243,19 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
             print("         Gradient evaluations: %d" % grad_calls[0])
     else:
         msg = _status_message['success']
+        if np.max(abs(xdiff)) < xtol:
+            msg2 = ("         Less than %.2f  max change on this iteration" % xtol)
+        elif gnorm < gtol:
+            msg2 = ("         Less than %.2f gradient on this iteration " % gtol)
+            
         if disp:
             print(msg)
             print("         Current function value: %f" % fval)
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % func_calls[0])
             print("         Gradient evaluations: %d" % grad_calls[0])
-
+            #if msg2 in locals():
+                #print(msg2)
     result = OptimizeResult(fun=fval, jac=gfk, nfev=func_calls[0],
                             njev=grad_calls[0], status=warnflag,
                             success=(warnflag == 0), message=msg, x=xk)
