@@ -3,6 +3,9 @@ from __future__ import division
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+plt.rcParams['image.cmap'] = 'gray'
+plt.rcParams['image.interpolation'] = 'none'
+
 import os.path
 from sys import path as syspath
 syspath.append("/home/asalerno/pyDirectionCompSense/source/")
@@ -17,8 +20,6 @@ import direction as d
 # from scipy import optimize as opt
 import optimize as opt
 import scipy.optimize as spopt
-
-plt.rcParams['image.cmap'] = 'gray'
 from recon_CS import *
 
 # Initialization variables

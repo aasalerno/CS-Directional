@@ -14,6 +14,9 @@ from __future__ import division
 import numpy as np 
 import scipy as sp
 import matplotlib.pyplot as plt
+plt.rcParams['image.cmap'] = 'gray'
+plt.rcParams['image.interpolation'] = 'none'
+
 import os.path
 import transforms as tf
 import scipy.ndimage.filters
@@ -22,8 +25,6 @@ import sampling as samp
 import direction as d
 #from scipy import optimize as opt
 import optimize as opt
-plt.rcParams['image.cmap'] = 'gray'
-
 EPS = np.finfo(float).eps
 
 def derivative_fun(x,N,lam1,lam2,data,k,strtag,ph,dirWeight = 0,dirs = None,M = None,nmins = 0,wavelet="db1",mode="per",a=1.0):

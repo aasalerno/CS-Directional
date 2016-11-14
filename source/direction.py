@@ -35,7 +35,7 @@ def dot_product_threshold_with_weights(filename,
     return locs, vals
 
 def dot_product_with_mins(dirs,
-                          nmins = 4):
+                          nmins = 5):
     '''
     This code exists to quickly calculate the closest directions in order to quickly get the values we need to calculate the mid matrix for the least squares fitting
     '''
@@ -145,3 +145,54 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
     Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)
     
     return Gdiffsq
+    
+def dir_dataSharing(samp,data,dirs,origDataSize,maxCheck=5,bymax=1):
+    
+    N = data.shape
+    
+    [x,y] = np.meshgrid(np.linspace(-1,1,origDataSize[0]),np.linspace(-1,1,origDataSize[1]))
+    r = np.sqrt(x**2+y**2)
+    
+    if N[-2:] != origDataSize:
+        r = zpad(r,N[-2:])
+    
+    x,y = np.where(np.logical_and(r>0,r<1))
+    
+    if len(N) == 2:
+        N = np.hstack([1, N])
+        
+    # Dot product matrix!
+    dp = np.zeros([N[0],N[0]])
+    
+    for i in range(N[0]):
+        for j in range(N[0]):
+            dp[i,j] = abs(np.inner(dirs[i,:],dirs[j,:]))
+    
+    # Sort from least to greatest
+    inds = np.argsort(dp)
+    d = np.sort(dp)
+    
+    if bymax:
+        d = np.fliplr(d)
+        inds = np.fliplr(inds)
+        
+    data_tog = data.copy()
+    
+    for i in range(N[0]):
+        for j in range(len(x)):
+            cnt=0
+            if not samp[i,x[j],y[j]]:
+                while cnt < maxCheck and not abs(data[inds[i,cnt],x[j],y[j]]):
+                    cnt += 1
+                data_tog[i,x[j],y[j]] = data[inds[i,cnt],x[j],y[j]]
+    
+    return data_tog
+    
+    
+    
+def zpad(orig_data,res_sz):
+    res_sz = np.array(res_sz)
+    orig_sz = np.array(orig_data.shape)
+    padval = np.ceil((res_sz-orig_sz)/2)
+    res = np.pad(orig_data,([int(padval[0]),int(padval[0])],[int(padval[1]),int(padval[1])]),mode='constant')
+    return res
