@@ -148,10 +148,31 @@ def fromMatrix(res,ax):
        #res = res + iDz(data[2,:,:,:],shp[1:])
    
    #return res
-   
-def fermifilt(N):
-    xg,yg = np.meshgrid(np.linspace(-0.11,0.11,N[0]),np.linspace(-0.11,.11,N[1]))
-    filt = np.fft.fftshift((1/(1+np.exp(-(abs(xg)+.05)/.01)))*(1/(1+np.exp(-(abs(yg)+.05)/.01))))
-    flit = -np.min(filt)+filt
-    filt = filt/np.max(filt)
-    return filt
+def fermifilt(rawdata,cutoff=0.98,transwidth=0.06):
+    data_shape = N.shape(rawdata)
+    nro = data_shape[-1]
+    nv1 = data_shape[-2]
+    nv2 = data_shape[-3]
+    for j in range(nv2):
+        r_vals = N.sqrt( (2.0*j/float(nv2)-1.0)**2.0 + \
+                       ((2.0*N.arange(nv1)/float(nv1)-1.0)**2.0)[:,N.newaxis] + \
+                       ((2.0*N.arange(nro)/float(nro)-1.0)**2.0)[N.newaxis,:]  \
+                     )
+        filt = 1.0/(1.0+N.exp(-(cutoff-r_vals)/transwidth))
+        if len(data_shape)==3:
+            rawdata[j,:,:]=(rawdata[j,:,:]*filt).astype(N.complex)
+        else:
+            rawdata[...,j,:,:]=(rawdata[...,j,:,:]*filt).astype(N.complex)
+        #if len(data_shape)==4:
+        #    for k in range(data_shape[0]):
+        #        rawdata[k,j,:,:] = (rawdata[k,j,:,:]*filt).astype(N.complex)
+        #elif len(data_shape)==3:
+        #    rawdata[j,:,:] = (rawdata[j,:,:]*filt).astype(N.complex)
+    return rawdata
+    
+def zpad(orig_data,res_sz):
+    res_sz = np.array(res_sz)
+    orig_sz = np.array(orig_data.shape)
+    padval = np.ceil((res_sz-orig_sz)/2)
+    res = np.pad(orig_data,([int(padval[0]),int(padval[0])],[int(padval[1]),int(padval[1])]),mode='constant')
+    return res
