@@ -49,7 +49,7 @@ def zpad(orig_data,res_sz):
     res_sz = np.array(res_sz)
     orig_sz = np.array(orig_data.shape)
     padval = np.ceil((res_sz-orig_sz)/2)
-    res = np.pad(orig_data,([padval[0],padval[0]],[padval[1],padval[1]]),mode='constant')
+    res = np.pad(orig_data,([int(padval[0]),int(padval[0])],[int(padval[1]),int(padval[1])]),mode='constant')
     return res
     
 def genPDF(img_sz,
@@ -82,12 +82,12 @@ def genPDF(img_sz,
     minval = 0.0
     maxval = 1.0
     val = 0.5
-
+    
     # Check if we're doing cylindrical data, if so, change img_sz and note that we need to zero pad
     if cyl[0] == 1:
         img_sz_hold = cyl[1:]
         cir = True
-        if np.all(img_sz_hold == img_sz):
+        if np.logical_and(img_sz_hold[0] == img_sz[0], img_sz_hold[1] == img_sz[1]):
             zpad_mat = False
         else:
             zpad_mat = True
@@ -126,15 +126,20 @@ def genPDF(img_sz,
     pdf = (1-r)**p
     pdf[idx] = 1
 
-    if np.floor(np.sum(pdf))>PCTG and p!=0:
-        raise NameError('Polynomial too low. Would need to undersample DC. Increase P')
+    if len(idx[0]) > PCTG/3:
+        raise NameError('Radius is too big! Rerun with smaller central radius.')
 
     # Bisect the data to get the proper PDF values to allow for the optimal sampling pattern generation
     if p==0:
-        val = PCTG - len(idx)
+        val = PCTG - len(idx[0])
         pdf = PCTG/(pdf.size-len(idx))*np.ones(pdf.shape)
         pdf[idx] = 1
     else:
+        #val = PCTG - len(idx[0])
+        #sumval = np.sum(pdf) - len(idx[0])
+        #alpha = val/sumval
+        #pdf = alpha*pdf
+        #pdf[idx] = 1
         while(1):
             val = minval/2 + maxval/2;
             pdf = (1-r)**p + val
@@ -204,7 +209,7 @@ def genSampling(pdf, n_iter, tol):
     return minIntrVec, actpctg
 
 def genSamplingDir(img_sz = [256,256],
-                dirFile = 'GradientVectorMag.txt',
+                dirFile = '/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt',
                 pctg = 0.25,
                 cyl = [0],
                 radius = 0.1,
@@ -214,6 +219,7 @@ def genSamplingDir(img_sz = [256,256],
     
     import itertools
     # load the directions
+    print('Loading Directions...')
     dirs = np.loadtxt(dirFile) 
     n = int(dirs.shape[0])
     r = np.zeros([n,n])
@@ -223,6 +229,7 @@ def genSamplingDir(img_sz = [256,256],
     #        if dirs[i,2] < 0:
     #            dirs[i,:] = -dirs[i,:]
 
+    print('Calculating Distances...')
     # Calculate the distance. Do it for both halves of the sphere
     for i in xrange(n):
         for j in xrange(n):
@@ -230,12 +237,14 @@ def genSamplingDir(img_sz = [256,256],
 
     invR = 1/(r+EPS)
 
+    print('Finding all possible direction combinations...')
     # Find all of the possible combinations of directions
     k = int(np.floor(n*pctg)) # How many "directions" will have a point in k space
     combs = np.array(list(itertools.combinations(range(0,n),k))) # All the different vector combinations
     vecs = np.array(list(itertools.combinations(range(0,k),2))) # All the different combos that need to be checked for the energy
     engStart = np.zeros([combs.shape[0]]) # Initialization for speed of the energy
-
+    
+    print('Running PE Electrostatics system...')
     # Run the "Potential energy" for each of the combinations
     if 'engFile' not in locals():
         for i in xrange(combs.shape[0]):
@@ -244,7 +253,8 @@ def genSamplingDir(img_sz = [256,256],
     else:
         engStart = np.load(engFile)
         # npy file
-
+    
+    print('Producing "best cases..."')
     # Build the best cases of trying to get the vectors together
     ind = engStart.argsort() # Sort from lowest energy (farthest apart) to highest
     eng = engStart[ind] # Again, sort
@@ -267,7 +277,8 @@ def genSamplingDir(img_sz = [256,256],
         amts[i] = vecsMin[vecsMin == i].size
     srt = amts.argsort()
     cts = amts[srt]
-
+    
+    print('Check lowest 20%')
     # Make sure we only look at the lowest 20% of the energies
     qEng = np.percentile(eng,20)
 
@@ -275,8 +286,8 @@ def genSamplingDir(img_sz = [256,256],
 
     #vecsUnique,vecs_idx = np.unique(vecsInd,return_index = True)
     
-    
     while cts[-1]/cts[0] >= 1.25:
+        #import pdb; pdb.set_trace()
         srt_hold = srt.copy().reshape(1,len(srt))[0,:k]
         srt_hold.sort()
         # We need to add one here as index and direction number differ by a value of one
@@ -307,11 +318,13 @@ def genSamplingDir(img_sz = [256,256],
     
     # Now we have to finally get the sampling pattern from this!
     
+    print('Obtaining sampling pattern...')
     [x,y] = np.meshgrid(np.linspace(-1,1,img_sz[1]),np.linspace(-1,1,img_sz[0]))
     r = np.sqrt(x**2 + y**2)
     
     # If not cylindrical, we need to have vals < 1
-    if not cyl:
+    if not cyl[0]:
+        print('Not cylindrical, so we need r<=1')
         r = r/np.max(abs(r))
         
     [rows,cols] = np.where((r <= 1).astype(int)*(r > radius).astype(int) == 1)
@@ -322,6 +335,7 @@ def genSamplingDir(img_sz = [256,256],
     nSets = np.hstack([vecsMin.shape, 1])
     
     # Start making random choices for the values that require them
+    
     for i in xrange(len(rows)):
         val = np.floor(nSets[0]*np.random.random(1)).astype(int)
         choice = vecsMin[val,].astype(int)
@@ -331,6 +345,7 @@ def genSamplingDir(img_sz = [256,256],
         samp[:,rx[i],ry[i]] = 1
         
     if endSize != img_sz:
+        print('Zero padding...')
         samp_final = np.zeros(np.hstack([n,endSize]))
         
         for i in xrange(n):
@@ -340,4 +355,20 @@ def genSamplingDir(img_sz = [256,256],
         samp = samp_final
     
     return samp
+
+def radialHistogram(k,rmax=np.sqrt(2),bins=50):
+    
+    maxxy = (rmax**2)/2
+    [x,y] = np.meshgrid(np.linspace(-maxxy,maxxy,k.shape[0]), np.linspace(-maxxy,maxxy,k.shape[1]))
+    r = np.sqrt(x**2+y**2)
+    r *= k
+    cnts = plt.hist(r.flat,bins=bins)
+    ymax = np.sort(cnts[0])[-2]*1.1
+    plt.xlim(0,rmax)
+    plt.ylim(0,ymax)
+    plt.title('Radial Histogram')
+    plt.xlabel('Radius')
+    plt.ylabel('Counts')
+    plt.show()
+    
     
