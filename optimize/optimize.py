@@ -1231,6 +1231,7 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % func_calls[0])
             print("         Gradient evaluations: %d" % grad_calls[0])
+            print("         Current Step alpha_k: %f" % alpha_k)
 
     elif k >= maxiter:
         warnflag = 1
@@ -1241,6 +1242,7 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % func_calls[0])
             print("         Gradient evaluations: %d" % grad_calls[0])
+            print("         Current Step alpha_k: %f" % alpha_k)
     else:
         msg = _status_message['success']
         if np.max(abs(xdiff)) < xtol:
@@ -1254,15 +1256,16 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % func_calls[0])
             print("         Gradient evaluations: %d" % grad_calls[0])
+            print("         Current Step alpha_k: %f" % alpha_k)
             #if msg2 in locals():
                 #print(msg2)
     result = OptimizeResult(fun=fval, jac=gfk, nfev=func_calls[0],
                             njev=grad_calls[0], status=warnflag,
-                            success=(warnflag == 0), message=msg, x=xk)
+                            success=(warnflag == 0), message=msg, x=xk, alpha_k=alpha_k)
     if retall:
         result['allvecs'] = allvecs
     
-    print('beta_k: %.2f' % abs(beta_k))
+    #print('beta_k: %.2f' % abs(beta_k))
     return result
 
 
