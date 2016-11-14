@@ -16,9 +16,9 @@ import scipy as sp
 import scipy.ndimage as ndimage
 import sys
 import glob
-import matplotlib.pyplot as plt
-plt.rcParams['image.cmap'] = 'gray'
-import matplotlib as mpl
+#import matplotlib.pyplot as plt
+#plt.rcParams['image.cmap'] = 'gray'
+#import matplotlib.pyplot as plt
 import os.path
 
 EPS = np.finfo(float).eps
@@ -58,7 +58,8 @@ def genPDF(img_sz,
         l_norm = 2,
         radius = 0,
         cyl = [0],
-        disp = 0):
+        disp = 0,
+        style='add'):
     """
     Generates a Probability Density Function for Pseudo-undersampling (and potentially for use with the scanner after the fact. 
     
@@ -135,25 +136,42 @@ def genPDF(img_sz,
         pdf = PCTG/(pdf.size-len(idx))*np.ones(pdf.shape)
         pdf[idx] = 1
     else:
-        #val = PCTG - len(idx[0])
-        #sumval = np.sum(pdf) - len(idx[0])
-        #alpha = val/sumval
-        #pdf = alpha*pdf
-        #pdf[idx] = 1
-        while(1):
-            val = minval/2 + maxval/2;
-            pdf = (1-r)**p + val
-            if outcyl:
-                pdf[outcyl] = 0
-            pdf[np.where(pdf > 1)] = 1
-            pdf[idx] = 1
-            N = np.floor(np.sum(pdf));
-            if N > PCTG:
-                maxval = val
-            elif N < PCTG:
-                minval = val;
-            else:
-                break;
+        if style=='mult':
+            #maxPx = sy/2
+            #maxPy = sx/2
+            alpha = 10
+            maxPx = 10
+            maxPy = 10
+            c = 0.90
+            while alpha>1:
+                maxPx = c*maxPx
+                maxPy = c*maxPy
+                [px,py] = np.meshgrid(np.linspace(-maxPx,maxPx,sy),np.linspace(-maxPy,maxPy,sx))
+                rpx = np.sqrt(px**2+py**2)
+                r0 = rpx[idx[0][0],idx[1][0]]
+                rpx = rpx - r0 + 1
+                rpx[idx] = 1
+                pdf = 1/(rpx**p)
+                val = PCTG - len(idx[0])
+                sumval = np.sum(pdf) - len(idx[0])
+                alpha = val/sumval
+                pdf = alpha*pdf
+                pdf[idx] = 1
+        else:
+            while(1):
+                val = minval/2 + maxval/2;
+                pdf = (1-r)**p + val
+                if outcyl:
+                    pdf[outcyl] = 0
+                pdf[np.where(pdf > 1)] = 1
+                pdf[idx] = 1
+                N = np.floor(np.sum(pdf));
+                if N > PCTG:
+                    maxval = val
+                elif N < PCTG:
+                    minval = val;
+                else:
+                    break;
     
     if zpad_mat:
         if (img_sz[0] < img_sz_hold[0]) or (img_sz[1] < img_sz_hold[1]):
