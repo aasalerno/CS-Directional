@@ -63,11 +63,12 @@ docs/_build/
 target/
 
 #Ipython Notebook
-.ipynb_checkpoints
+*.ipynb_checkpoints
+*.kate-swp
 
 # Matlab checks
 *.mat
 
 #Images
 *.png
-
+*.mnc
