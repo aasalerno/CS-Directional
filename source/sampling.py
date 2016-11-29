@@ -426,7 +426,7 @@ def pltSlice(im,sl,rads,col='b'):
     
 def signalMask(im, thresh=0.1, iters = None):
     if not iters:
-        iters = int(0.1*x.shape[0])
+        iters = int(0.1*im.shape[0])
     
     mask = np.zeros(im.shape)
     highVal = np.where(im>thresh)
@@ -439,13 +439,26 @@ def signalMask(im, thresh=0.1, iters = None):
         #plt.show()
         for y in xrange(yLen):
             for x in xrange(xLen):
-                if (y > 0        and mask[y-1,x]) or \
+                if (y > 0     and mask[y-1,x]) or \
                 (y < yLen - 1 and mask[y+1,x]) or \
                 (x > 0        and mask[y,x-1]) or \
-                (x < xLen - 1 and mask[y,x+1]): 
-                #print('TRUE')
-                output[y,x] = 1
+                (x < xLen - 1 and mask[y,x+1]):
+                    output[y,x] = 1
         mask = output.copy()
-
+        
+    #mask = ndimage.binary_fill_holes(mask).astype(int)
     mask = ndimage.filters.gaussian_filter(mask,int(iters*0.5))
     return mask
+    
+def loRes(im,pctg):
+    N = im.shape
+    [x,y] = np.meshgrid(np.linspace(-1,1,N[1]),np.linspace(-1,1,N[0]))
+    rsq = x**2 + y**2
+    loResMaskLocs = np.where(rsq < pctg)
+    loResMask = np.zeros(N)
+    loResMask[loResMaskLocs] = 1
+    loResMask = sp.ndimage.filters.gaussian_filter(loResMask,3)
+    ph_ones = np.ones(N)
+    data = np.fft.fftshift(loResMask)*tf.fft2c(im, ph=ph_ones)
+    im_lr = tf.ifft2c(data,ph=ph_ones)
+    return im_lr
