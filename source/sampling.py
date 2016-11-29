@@ -173,15 +173,22 @@ def genPDF(img_sz,
                 else:
                     break;
     
+    pdf = ndimage.filters.gaussian_filter(pdf,3)
+    
+    if cir:
+        [x,y] = np.meshgrid(np.linspace(-1,1,sy),np.linspace(-1,1,sx))
+        r = np.sqrt(x**2 + y**2)
+        outcyl = np.where(r > 1)
+        pdf[outcyl] = 0
+    
     if zpad_mat:
-        if (img_sz[0] < img_sz_hold[0]) or (img_sz[1] < img_sz_hold[1]):
+        if (img_sz[0] > img_sz_hold[0]) or (img_sz[1] > img_sz_hold[1]):
             pdf = zpad(pdf,img_sz)
         else:
             xdiff = int((img_sz[0] - img_sz_hold[0])/2)
             ydiff = int((img_sz[1] - img_sz_hold[1])/2)
             pdf = pdf[xdiff:-xdiff,ydiff:-ydiff]
 
-    pdf = ndimage.filters.gaussian_filter(pdf,3)
     if disp:
         plt.figure
         plt.imshow(pdf)
@@ -374,19 +381,71 @@ def genSamplingDir(img_sz = [256,256],
     
     return samp
 
-def radialHistogram(k,rmax=np.sqrt(2),bins=50):
+def radialHistogram(k,rmax=np.sqrt(2),bins=50,pdf=None,sl=None,disp=1):
     
     maxxy = (rmax**2)/2
     [x,y] = np.meshgrid(np.linspace(-maxxy,maxxy,k.shape[0]), np.linspace(-maxxy,maxxy,k.shape[1]))
     r = np.sqrt(x**2+y**2)
     r *= k
-    cnts = plt.hist(r.flat,bins=bins)
-    ymax = np.sort(cnts[0])[-2]*1.1
+    r = r[r!=0]
+    bins = int(len(k[0,:])/2)
+    cnts, binEdges = np.histogram(r.flat,bins=bins,normed=True)
+    rads = np.linspace(binEdges[1],binEdges[-1],int(len(k[0,:])/2))
+    rsq = rads**2
+    areas = np.zeros(rsq.shape)
+    areas[0] = np.pi*rsq[0]
+    areas[1:] = np.pi*np.diff(rsq)
+
+    fig = plt.figure()
+    plt.bar(binEdges[:-1],cnts/np.sum(cnts)/areas,width=binEdges[1]-binEdges[0])
+    ymax = np.max(cnts/areas)*1.1/np.sum(cnts)
+    #plt.bar(binEdges[:-1],cnts,width=binEdges[1]-binEdges[0])
+    #ymax = np.max(cnts)*1.1
     plt.xlim(0,rmax)
     plt.ylim(0,ymax)
     plt.title('Radial Histogram')
     plt.xlabel('Radius')
     plt.ylabel('Counts')
-    plt.show()
+
+    #if sl:
+        #pltSliceHalf(pdf,sl,rads)
+            
+    #if disp:
+        #plt.show()
+
+def pltSliceHalf(im,sl,rads,col='b'):
+
+    plt.plot(rads,im[sl,int(len(im[sl,:])/2):],col)
+    plt.xlabel('Radius')
+    plt.ylabel('Counts')
     
+def pltSlice(im,sl,rads,col='b'):
+    #if not fig:
+        #fig = plt.figure()
+    plt.plot(rads,im[sl,:],color=col)
     
+def signalMask(im, thresh=0.1, iters = None):
+    if not iters:
+        iters = int(0.1*x.shape[0])
+    
+    mask = np.zeros(im.shape)
+    highVal = np.where(im>thresh)
+    mask[highVal] = 1
+
+    yLen,xLen = mask.shape
+    output = mask.copy()
+    for iter in xrange(iters):
+        #plt.imshow(output)
+        #plt.show()
+        for y in xrange(yLen):
+            for x in xrange(xLen):
+                if (y > 0        and mask[y-1,x]) or \
+                (y < yLen - 1 and mask[y+1,x]) or \
+                (x > 0        and mask[y,x-1]) or \
+                (x < xLen - 1 and mask[y,x+1]): 
+                #print('TRUE')
+                output[y,x] = 1
+        mask = output.copy()
+
+    mask = ndimage.filters.gaussian_filter(mask,int(iters*0.5))
+    return mask
