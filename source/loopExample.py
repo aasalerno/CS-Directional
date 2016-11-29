@@ -49,8 +49,8 @@ a = 10.0 # value used for the tanh argument instead of sign
 res = 75 # need to find where I can get this from the data itself...
 phIter = 0
 sliceChoices = [127, 150, 180, 190, 200, 210, 220]
-#pctgs = [0.125, 0.25, 0.33, 0.5, 0.75, 0.9]
-pctgs = [0.25]
+pctgs = [0.125, 0.25, 0.33, 0.5, 0.75, 0.9]
+#pctgs = [0.25]
 
 for sliceChoice in sliceChoices:
     for pctg in pctgs:
