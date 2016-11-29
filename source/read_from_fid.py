@@ -18,8 +18,7 @@ class dummyopt():
                  nofft=False,fft1d=False,fft2d=False,fft3d=True,real=False,imag=False,phase=False,
                  image_range_min=0.0,image_range_max=0.0,max_range=False,vType=None,apowidth=0.8,
                  echoamp_alpha=0.02,phasecorr_data=None,phasecorr_table=None,phasecorr_plot=False,
-                 no_echo_roshift=False,no_pe_phaseshift=False,no_Echo_shift_apply=False,no_echo_phaseshift=False,
-                 separate_multi_acq=False):
+                 no_echo_roshift=False,no_pe_phaseshift=False,no_Echo_shift_apply=False,no_echo_phaseshift=False,separate_multi_acq=False,Pftacq=False):
         self.petable=petable
         self.petable_ordered_pairs=petable_ordered_pairs
         self.fov_shift_ro=fov_shift_ro
@@ -55,13 +54,15 @@ class dummyopt():
         self.no_pe_phaseshift=no_pe_phaseshift
         self.no_Echo_shift_apply=no_Echo_shift_apply
         self.separate_multi_acq=separate_multi_acq
+        self.Pftacq=Pftacq
 
 
 def getDataFromFID(petable,inputdirectory,imouse):
     
-    options=dummyopt(complexavg=True,petable=petable,petable_ordered_pairs=True)
+    options=dummyopt(complexavg=True,petable=petable,petable_ordered_pairs=True,outputreps=True)
     inputAcq = brf.BrukerAcquisition(inputdirectory)
     seqrec = seqmodule.seq_reconstruction(inputAcq,options,"./temp.mnc")
     seqrec.gen_kspace(imouse=imouse)
+    seqrec.Pftacq = False
     seqrec.recon()
-    return seqrec.image_data
+    return seqrec.image_data[-1]
