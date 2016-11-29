@@ -4,7 +4,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 plt.rcParams['image.cmap'] = 'gray'
-#plt.rcParams['image.interpolation'] = 'none'
+plt.rcParams['image.interpolation'] = 'bilinear'
 
 import os.path
 from sys import path as syspath
@@ -22,7 +22,7 @@ from recon_CS import *
 import read_from_fid as rff
 import saveFig
 
-np.random.seed(1000)
+np.random.seed(250)
 
 # Initialization variables
 inputdirectory="/hpf/largeprojects/MICe/segan/exercise_irradiation/bruker_data/running_C/P14/20160607_124310_Running_C_1_1"
@@ -46,38 +46,50 @@ dirFile = None
 nmins = None
 dirs = None
 M = None
-radius = 0.1
-
+radius = 0.2
+res = 75 # need to find where I can get this from the data itself...
+phIter = 0
+sliceChoice = 127
 
 # Make the data go from clim=[0,1]
 #fullImData = rff.getDataFromFID(petable,inputdirectory,2)[0,:,:,:]
 #fullImData = fullImData-np.min(fullImData)
-#fullImData = fullImData/np.max(fullImData)
+#fullImData = fullImData/np.max(abs(fullImData))
 #im = fullImData[:,:,sliceChoice]
 #N = fullImData.shape
 #Nsort = np.argsort(N)
-
 
 # Now, FFT over the two PE Axes
 #fftData = np.fft.fft2(fullImData,axes=(Nsort[0],Nsort[1]))
 #data_full = np.fft.fftshift(fftData[:,:,sliceChoice])
 
 
-im = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/exercise_irradiation/bruker_data/running_C/P14/fullySampledBrain.npy')
+# load the precalculated image
+im = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/P14/fullySampledBrain.npy')[sliceChoice-1,:,:]
 N = np.array(im.shape)  # image Size
-#tupleN = tuple(N)
 pctg = 0.25  # undersampling factor
-P = 2.05  # Variable density polymonial degree
-ph = tf.matlab_style_gauss2D(im,shape=(5,5));
+P = 2  # Variable density polymonial degree
+
+# Phase Calculations
+ph_ones = np.ones(N)
+ph = tf.matlab_style_gauss2D(im,shape=(5,5))
 #ph = np.ones(im.shape, complex)
+for i in range(phIter):
+    ph = tf.laplacianUnwrap(ph,N,[75,75])
+
+ph = np.exp(1j*ph)
+
+
+
+
 
 # Generate the PDF for the sampling case -- note that this type is only used in non-directionally biased cases.
-pdf = samp.genPDF(N, P, pctg, radius=radius, cyl=[0]) 
+pdf = samp.genPDF(N, P, pctg, radius=radius, cyl=[1,294,294], style='mult') 
 # Set the sampling pattern -- checked and this gives the right percentage
 k = samp.genSampling(pdf, 50, 2)[0].astype(int)
 
 # Here is where we build the undersampled data
-data = np.fft.ifftshift(k) * tf.fft2c(im, ph=ph)
+data = np.fft.fftshift(k) * tf.fft2c(im, ph=ph_ones)
 # ph = phase_Calculation(im,is_kspace = False)
 # data = np.fft.ifftshift(np.fft.fftshift(data)*ph.conj());
 #filt = tf.fermifilt(N)
@@ -85,8 +97,8 @@ data = np.fft.ifftshift(k) * tf.fft2c(im, ph=ph)
 
 # IMAGE from the "scanner data"
 im_scan = tf.ifft2c(data, ph=ph)
-minval = np.min(im)
-maxval = np.max(im)
+minval = np.min(abs(im))
+maxval = np.max(abs(im))
 # Primary first guess. What we're using for now. Density corrected
 #im_dc = tf.ifft2c(data / np.fft.ifftshift(pdf), ph=ph).real.flatten().copy()
 #for imdcs in ['zeros','ones','densCorr','imFull']:
@@ -96,7 +108,10 @@ for imdcs in ['densCorr','densCorr_Completed']:
     elif imdcs == 'ones':
         im_dc = np.ones(data.shape)
     elif imdcs == 'densCorr':
-        im_dc = tf.ifft2c(data / np.fft.ifftshift(pdf), ph=ph).real.flatten().copy()
+        pdfDiv = pdf
+        pdfZeros = np.where(pdf==0)
+        pdfDiv[pdfZeros] = 1
+        im_dc = tf.ifft2c(data / np.fft.ifftshift(pdfDiv), ph=ph).real.flatten().copy()
     elif imdcs == 'imFull':
         im_dc = im
     elif imdcs == 'densCorr_Completed':
