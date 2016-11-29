@@ -9393,40 +9393,40 @@ def radialHistogram(k,rmax=np.sqrt(2),bins='auto'):
 235/20: plt.imshow(im_res)
 235/21: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
 235/22: plt.show()
-   1: %paste
-   2: im_hold = np.load('brainData/exercise_irradiation/bruker_data/running_C/P14/rad_0.1/postComps/rerun1_TV_0.02_XFM_0.02.npy')
-   3: plt.imshow(im_hold,clim=(minval,maxval),interpolation='bilinear')
-   4: plt.show()
-   5: fig = plt.figure(figsize=(15,10))
-   6: ax = fig.add_subplot(1,2,1)
-   7: plt.imshow(im_hold,clim=(minval,maxval),interpolation='bilinear')
-   8: plt.title('Old')
-   9: ax = fig.add_subplot(1,2,2)
-  10: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
-  11: plt.title('New')
-  12: plt.show()
-  13: im_dc = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/exercise_irradiation/bruker_data/running_C/P14/rad_0.1/TV0.005_XFM0.005/0.25per_result_im_dc_densCorr.npy')
-  14: xtol
-  15: xtol = 1e-4
-  16: im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun, options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': 0.6, 'xtol': xtol, 'TVWeight': TVWeight, 'XFMWeight': XFMWeight, 'N': N})
-  17: np.max(abs(im_result['jac']))
-  18: np.min(abs(im_result['jac']))
-  19: np.mean(abs(im_result['jac']))
-  20: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
-  21: im_res = im_result['x'].reshape(N)
-  22: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
-  23: plt.show()
-  24: %paste
-  25: %paste
-  26: plt.imshow(pdf)
-  27: plt.show()
-  28: plt.plot(pdf[294/2,:])
-  29: plt.show()
-  30: np.sum(pdf)
-  31: .25*294*294
-  32: k
-  33: np.sum(k)
-  34: wavelet
+236/1: %paste
+236/2: im_hold = np.load('brainData/exercise_irradiation/bruker_data/running_C/P14/rad_0.1/postComps/rerun1_TV_0.02_XFM_0.02.npy')
+236/3: plt.imshow(im_hold,clim=(minval,maxval),interpolation='bilinear')
+236/4: plt.show()
+236/5: fig = plt.figure(figsize=(15,10))
+236/6: ax = fig.add_subplot(1,2,1)
+236/7: plt.imshow(im_hold,clim=(minval,maxval),interpolation='bilinear')
+236/8: plt.title('Old')
+236/9: ax = fig.add_subplot(1,2,2)
+236/10: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+236/11: plt.title('New')
+236/12: plt.show()
+236/13: im_dc = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/exercise_irradiation/bruker_data/running_C/P14/rad_0.1/TV0.005_XFM0.005/0.25per_result_im_dc_densCorr.npy')
+236/14: xtol
+236/15: xtol = 1e-4
+236/16: im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun, options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': 0.6, 'xtol': xtol, 'TVWeight': TVWeight, 'XFMWeight': XFMWeight, 'N': N})
+236/17: np.max(abs(im_result['jac']))
+236/18: np.min(abs(im_result['jac']))
+236/19: np.mean(abs(im_result['jac']))
+236/20: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+236/21: im_res = im_result['x'].reshape(N)
+236/22: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+236/23: plt.show()
+236/24: %paste
+236/25: %paste
+236/26: plt.imshow(pdf)
+236/27: plt.show()
+236/28: plt.plot(pdf[294/2,:])
+236/29: plt.show()
+236/30: np.sum(pdf)
+236/31: .25*294*294
+236/32: k
+236/33: np.sum(k)
+236/34: wavelet
 229/16: ls
 229/17: k
 229/18: np.random.seed(2000)
@@ -9436,6 +9436,95 @@ def radialHistogram(k,rmax=np.sqrt(2),bins='auto'):
 237/2: khold = np.load('testk.npy')
 237/3: khold == k
 237/4: np.all(khold == k)
-  35: %dhist
-  36: %history
-  37: %history -g -f history.txt
+236/35: %dhist
+236/36: %history
+236/37: %history -g -f history.txt
+236/38: %history -g -f -t history.txt
+238/1: %paste
+238/2: %paste
+238/3: P
+238/4: plt.imshow(pdf)
+238/5: plt.show()
+238/6: samp.radialHistogram(k)
+238/7: r
+238/8: rmax=np.sqrt(2),bins=50
+238/9: rmax=np.sqrt(2) ; bins=50
+238/10: maxxy = (rmax**2)/2
+238/11: [x,y] = np.meshgrid(np.linspace(-maxxy,maxxy,k.shape[0]), np.linspace(-maxxy,maxxy,k.shape[1]))
+238/12: r = np.sqrt(x**2+y**2)
+238/13: plt.imshow(r[147,:])
+238/14: plt.plot(r[147,:])
+238/15: plt.show()
+238/16: plt.plot(r[147,:])
+238/17: plt.show()
+238/18: plt.plot(k[147,:])
+238/19: plt.show()
+238/20: r *= k
+238/21: r = np.sqrt(x**2+y**2)
+238/22: r = r*k
+238/23: r
+238/24: k
+238/25: plt.imshow(k)
+238/26: plt.show()
+238/27: plt.imshow(r)
+238/28: plt.show()
+238/29: bins = 20
+238/30: %paste
+238/31: r = np.sqrt(x**2+y**2)
+238/32: a = np.where(r <= 0.1)
+238/33: a
+238/34: k[a]
+238/35: r[a]
+238/36: r = np.sqrt(x**2+y**2)
+238/37: np.where(abs(r-0.1) < 0.1)
+238/38: a = np.where(abs(r-0.1) < 0.1)
+238/39: k[a]
+238/40: np.sum(k[a])
+238/41: np.sum(k[a])/k[a].size
+238/42: np.where(r < 0.1)
+239/1: %paste
+239/2: im_test = im_res
+239/3: im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun, options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': 0.6, 'xtol': xtol*0.1, 'TVWeight': TVWeight, 'XFMWeight': XFMWeight, 'N': N})
+239/4: im_res = im_result['x'].reshape(N)
+239/5: plt.imshow(im_res)
+239/6: plt.show()
+239/7: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+239/8: plt.imshow()
+239/9: plt.show()
+239/10: fig = plt.figure(figsize=(15,10))
+239/11: ax = fig.add_subplot(1,2,1)
+239/12: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+239/13: plt.title('xtol=1e-4')
+239/14: ax = fig.add_subplot(1,2,2)
+239/15: plt.imshow(im_test,clim=(minval,maxval),interpolation='bilinear')
+239/16: plt.title('xtol=1e-3')
+239/17: plt.show()
+239/18: im_dc = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/exercise_irradiation/bruker_data/running_C/P14/rad_0.1/TV0.005_XFM0.005/0.25per_result_im_dc_densCorr.npy')
+239/19: im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun, options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': 0.6, 'xtol': xtol, 'TVWeight': TVWeight, 'XFMWeight': XFMWeight, 'N': N})
+239/20: im_res = im_result['x'].reshape(N)
+239/21:     plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+239/22:     plt.title("Reconstructed Image with %d%% Sampling and im_dc==" % (pctg*100) + imdcs)
+239/23:     plt.show()
+239/24: %paste
+239/25: plt.imshow(im_res,clim=(minval,maxval),interpolation='bilinear')
+239/26: plt.title("Reconstructed Image with %d%% Sampling and im_dc==" % (pctg*100) + imdcs)
+239/27: plt.imshow(im_test,clim=(minval,maxval),interpolation='bilinear')
+239/28: plt.title("Reconstructed Image with %d%% Sampling and im_dc==" % (pctg*100) + imdcs)
+239/29: plt.show()
+239/30: im_dc = im_test
+239/31: TVWeight = XFMWeight = 0.001
+239/32: xtol
+239/33: %paste
+239/34: xtol = 1e-5
+239/35: %paste
+240/1: %paste
+240/2: %paste
+240/3: %paste
+   1:  %history -g -f -t history.txt
+   2: %history -g -f -t history.txt
+   3: img_sz = [294,294]
+   4: p =3
+   5: pctg = .25
+   6: l_norm = 2
+   7: radius = 0.1
+   8: %history -g -f history.txt
