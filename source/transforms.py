@@ -51,7 +51,7 @@ def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
             #axisvals.append(0)
     
     
-    res = np.zeros(np.hstack([len(strtag), im.shape]),dtype=complex)
+    res = np.zeros(np.hstack([len(strtag), im.shape]))
     
     cnt = 0
     for i in xrange(len(strtag)):
@@ -74,10 +74,32 @@ def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
     import cv2
     
     filtdata = cv2.GaussianBlur(im.real*1,shape,sigmaX) + cv2.GaussianBlur(im.imag*1,shape,sigmaX)*1j;
-    ph = np.conj(filtdata)/(abs(filtdata)+EPS)
+    ph = np.angle(filtdata)
     
     return ph
+    
+def laplacianUnwrap(P,N,res):
+    # P is the wrapped phase 3d volume, ny nx and nz are the matrix dimensions, Ly Lx Lz are
+    # the spatial dimensions of the volume in cm.
+    
+    ph_ones = np.ones(N)
 
+    P = P.reshape(N)
+    cP = np.cos(P)
+    sP = np.sin(P)
+    FcP = fft2c(cP,ph_ones)
+    FsP = fft2c(sP,ph_ones)
+    Lx = res[0]*N[0]*10000
+    Ly = res[1]*N[1]*10000
+    [k1,k2]= np.meshgrid(np.arange(-N[1]/2+.5,N[1]/2)/Ly,np.arange(-N[0]/2+.5,N[0]/2)/Ly)
+    ksq = k1**2 + k2**2
+    iFkFcP = ifft2c(ksq*FcP,ph_ones)
+    iFkFsP = ifft2c(ksq*FsP,ph_ones)
+    fP = fft2c(cP*iFkFsP - sP*iFkFcP,ph_ones)/np.fft.fftshift(ksq)
+    #P = ifft2c(fP,ph_ones).real
+    P = np.angle(ifft2c(fP,ph_ones))
+    return P
+    
 def toMatrix(x):
     ''' Go from [cAn, (cHn, cVn, cDn), ..., (cH1, cV1, cD1)] to a 2D image'''
     ax = []
