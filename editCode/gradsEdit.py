@@ -43,24 +43,17 @@ def gXFM(x,N,wavelet='db1',mode='per',
     #        grad[...,...,i] = p*x1*(x1*x1.conj()+l1smooth)**(p/2-1)
     #grad = p*x0*(x0*x0.conj()+l1smooth)**(p/2.0-1)
     if len(N) == 2:
-        N = np.hstack([1,N])
-        shp = N.copy
-    else:
-        shp = np.hstack([1,N[-2:]])
+        N = np.hstack([1, N])
     
     x0 = x.reshape(N)
-    grad = np.zeros(N)
-    for kk in range(N[0]):
-        wvlt = tf.xfm(np.squeeze(x0[kk,:,:]),wavelet=wavelet,mode=mode)
-        #import pdb; pdb.set_trace()
-        gwvlt=wvlt[:] #copies wvlt into new list
-        gwvlt[0]=np.sign(wvlt[0])
-        for i in xrange(1,len(wvlt)):
-            gwvlt[i]=[np.tanh(a*wvlt[i][j]) for j in xrange(3)] 
-        
-        grad[kk,:,:] = tf.ixfm(gwvlt,wavelet=wavelet,mode=mode).reshape(shp)
-    
-    import pdb; pdb.set_trace()
+    wvlt = tf.xfm(x0,wavelet=wavelet,mode=mode)
+    #import pdb; pdb.set_trace()
+    gwvlt=wvlt[:] #copies wvlt into new list
+    gwvlt[0]=np.sign(wvlt[0])
+    for i in xrange(1,len(wvlt)):
+        gwvlt[i]=[np.tanh(a*wvlt[i][j]) for j in xrange(3)] 
+
+    grad=tf.ixfm(gwvlt,wavelet=wavelet,mode=mode)
     return grad
 
 def gObj(x,N,ph,
@@ -83,7 +76,8 @@ def gObj(x,N,ph,
     
     '''
     if len(N) == 2:
-        N = np.hstack([1,N])
+        N = np.hstack([1, N])
+
     #grad = np.zeros([x.shape])
 
     # Here we're going to convert the data into the k-sapce data, and then subtract
@@ -91,20 +85,15 @@ def gObj(x,N,ph,
     # back into image space
     x0 = x.reshape(N)
     data_from_scanner.shape = N
-    grad = np.zeros(N)
-    ph0 = ph.reshape(N)
-    #samp_mask = samp_mask.reshape(N)
+    x_data = np.fft.fftshift(samp_mask)*tf.fft2c(x0,ph); # Issue, feeding in 3D data to a 2D fft alg...
     
-    for kk in range(N[0]):
-        x_data = np.fft.fftshift(samp_mask[kk,:,:])*tf.fft2c(x0[kk,:,:],ph0[kk,:,:]); # Issue, feeding in 3D data to a 2D fft alg...
+    grad = -2*tf.ifft2c(data_from_scanner - x_data,ph).real; # -1* & ,real
     
-        grad[kk,:,:] = -2*tf.ifft2c(data_from_scanner[kk,:,:] - x_data,ph0[kk,:,:]).real; # -1* & ,real
-    import pdb; pdb.set_trace()
     return grad
 
-def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=None, p=1, l1smooth=1e-15, a=1.0):
-    #import pdb; pdb.set_trace()
-    if nmins:
+def gTV(x,N,strtag,dirWeight,dirs = None,nmins = 0, dirInfo = None, p = 1,l1smooth = 1e-15, a = 1.0):
+    
+    if dirInfo:
         M = dirInfo[0]
         dIM = dirInfo[1]
         Ause = dirInfo[2]
@@ -115,32 +104,35 @@ def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=None, p=1, l1smooth
         Ause = None
         inds = None
     
-    if len(x.shape) == 2:
-        N = np.hstack([1,N])
+    if len(N) == 2:
+        N = np.hstack([1, N])
         
     x0 = x.reshape(N)
-    grad = np.zeros(np.hstack([N[0], len(strtag), N[1:]]))
+    grad = np.zeros(np.hstack([N[0], len(strtag),N[1],N[2]]))
     
-    TV_data = tf.TV(x0,N,strtag,dirWeight,dirs,nmins,dirInfo)
-    for i in xrange(len(strtag)):
+    
+    for kk in range(N[0]):
+        TV_data = tf.TV(x0[kk,:,:],N,strtag,dirWeight,dirs,nmins,M)
+        for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
             TV_dataRoll = np.roll(TV_data[i,:,:],1,axis=i)
-            grad[:,i,:,:] = -np.tanh(a*(TV_data[i,:,:])) + np.tanh(a*(TV_dataRoll))
+            grad[kk,i,:,:] = -np.tanh(a*(TV_data[i,:,:])) + np.tanh(a*(TV_dataRoll))
             #grad[i,:,:] = -np.sign(TV_data[i,:,:]) + np.sign(TV_dataRoll)
         elif strtag[i] == 'diff':
-            for d in xrange(N[i]):
-                dDirx = np.zeros(np.hstack([N,M.shape[1]])) # dDirx.shape = [nDirs,imx,imy,nmins]
-                for ind_q in xrange(N[i]):
-                        for ind_r in xrange(M.shape[1]):
-                            dDirx[ind_q,:,:,ind_r] = x0[inds[ind_q,ind_r],:,:].real - x0[ind_q,:,:].real
-                for comb in xrange(len(Ause[d])):
-                        colUse = Ause[d][comb]
-                        for qr in xrange(M.shape[1]):
-                            grad[d,i,:,:] += np.dot(dIM[d,qr,colUse],dDirx[d,:,:,qr])
-            grad[:,i,:,:] *= dirWeight
+            None
+            #for d in xrange(N[i]):               
+                #dDirx = np.zeros(np.hstack([N,M.shape[1]])) # dDirx.shape = [nDirs,imx,imy,nmins]
+                #for ind_q in xrange(N[i]):
+                        #for ind_r in xrange(M.shape[1]):
+                            #dDirx[ind_q,:,:,ind_r] = x0[inds[ind_q,ind_r],:,:] - x0[ind_q,:,:]
+                #for comb in xrange(len(Ause[kk])):
+                        #colUse = Ause[dir][comb]
+                        #for qr in xrange(M.shape[1]):
+                            #grad[i,d,:,:] = np.dot(dIM[d,qr,colUse],dDirx[d,:,:,qr]) + grad[i,d,:,:] 
+    
     # Need to make sure here that we're iterating over the correct dimension
     # As of right now, this assumes that we're working on a slice by slice basis
     # I'll have to implement 3D data work soon.
-    import pdb; pdb.set_trace()
-    grad = np.sum(grad,axis=1)
+    
+    grad = np.sum(grad,axis=0)
     return grad
