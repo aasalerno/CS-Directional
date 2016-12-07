@@ -110,7 +110,12 @@ def calc_Mid_Matrix(dirs,nmins):
             colUse = Ause[kk][d]
             dIM[kk,:,colUse] = np.dot(dI[kk,colUse,:],M[colUse,:,:])
     
-    return M, dIM, Ause
+    dirInfo = [M]
+    dirInfo.append(dIM)
+    dirInfo.append(Ause)
+    dirInfo.append(inds)
+    
+    return dirInfo
         
     
 #def residuals(a,b):
@@ -118,11 +123,12 @@ def calc_Mid_Matrix(dirs,nmins):
     
 def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
     
+    #import pdb; pdb.set_trace()
     x0 = x.copy().reshape(N)
     nmins = inds.shape[1]
     dirloc = strtag.index("diff")
     x0 = np.rollaxis(x0,dirloc)
-    Gdiffsq = np.zeros(N)
+    Gdiffsq = np.zeros(N,dtype='complex')
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
@@ -139,14 +145,16 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
         
         for i in xrange(nrow):
             for j in xrange(ncol):
-                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:]),Irq[:,i,j].reshape(nmins,1))
+                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:]),Irq[:,i,j].reshape(nmins,1))[0,0]
     
     # This line puts the data back into the orientation that it was in before
     Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)
     
     return Gdiffsq
     
-def dir_dataSharing(samp,data,dirs,origDataSize,maxCheck=5,bymax=1):
+def dir_dataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
+    if not origDataSize:
+        origDataSize = data.shape[-2:]
     
     N = data.shape
     
