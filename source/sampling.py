@@ -16,10 +16,13 @@ import scipy as sp
 import scipy.ndimage as ndimage
 import sys
 import glob
-#import matplotlib.pyplot as plt
-#plt.rcParams['image.cmap'] = 'gray'
+import matplotlib.pyplot as plt
+plt.rcParams['image.cmap'] = 'gray'
 #import matplotlib.pyplot as plt
 import os.path
+from sys import path as syspath
+syspath.append('/home/bjnieman/source/vnmr')
+from varian_read_file import parse_petable_file
 
 EPS = np.finfo(float).eps
 
@@ -88,7 +91,7 @@ def genPDF(img_sz,
     if cyl[0] == 1:
         img_sz_hold = cyl[1:]
         cir = True
-        if np.logical_and(img_sz_hold[0] == img_sz[0], img_sz_hold[1] == img_sz[1]):
+        if np.logical_and(img_sz_hold[-2] == img_sz[-2], img_sz_hold[-1] == img_sz[-1]):
             zpad_mat = False
         else:
             zpad_mat = True
@@ -104,9 +107,13 @@ def genPDF(img_sz,
 
 
     # How many of the datapoints do we have to look at?
-    sx = img_sz_hold[0]
-    sy = img_sz_hold[1]
-    PCTG = int(np.floor(pctg*sx*sy))
+    sx = img_sz_hold[-2]
+    sy = img_sz_hold[-1]
+    #import pdb; pdb.set_trace()
+    if cir:
+        PCTG = int(np.floor(pctg*sx*sy*np.pi/4.))
+    else:
+        PCTG = int(np.floor(pctg*sx*sy))
 
     if np.sum(np.array(img_sz_hold == 1,dtype='int')) == 0: #2D case
         [x,y] = np.meshgrid(np.linspace(-1,1,sy),np.linspace(-1,1,sx))
@@ -143,7 +150,7 @@ def genPDF(img_sz,
             maxPx = 10
             maxPy = 10
             c = 0.90
-            while alpha>1:
+            while alpha>1 or (abs(np.sum(pdf)-PCTG) > (0.01*PCTG)):
                 maxPx = c*maxPx
                 maxPy = c*maxPy
                 [px,py] = np.meshgrid(np.linspace(-maxPx,maxPx,sy),np.linspace(-maxPy,maxPy,sx))
@@ -152,6 +159,11 @@ def genPDF(img_sz,
                 rpx = rpx - r0 + 1
                 rpx[idx] = 1
                 pdf = 1/(rpx**p)
+                if cir:
+                    [x,y] = np.meshgrid(np.linspace(-1,1,sy),np.linspace(-1,1,sx))
+                    r = np.sqrt(x**2 + y**2)
+                    outcyl = np.where(r > 1)
+                    pdf[outcyl] = 0
                 val = PCTG - len(idx[0])
                 sumval = np.sum(pdf) - len(idx[0])
                 alpha = val/sumval
@@ -173,20 +185,20 @@ def genPDF(img_sz,
                 else:
                     break;
     
-    pdf = ndimage.filters.gaussian_filter(pdf,3)
-    
     if cir:
         [x,y] = np.meshgrid(np.linspace(-1,1,sy),np.linspace(-1,1,sx))
         r = np.sqrt(x**2 + y**2)
         outcyl = np.where(r > 1)
         pdf[outcyl] = 0
     
+    pdf = ndimage.filters.gaussian_filter(pdf,3)
+    
     if zpad_mat:
-        if (img_sz[0] > img_sz_hold[0]) or (img_sz[1] > img_sz_hold[1]):
+        if (img_sz[-2] > img_sz_hold[-2]) or (img_sz[-1] > img_sz_hold[11]):
             pdf = zpad(pdf,img_sz)
         else:
-            xdiff = int((img_sz[0] - img_sz_hold[0])/2)
-            ydiff = int((img_sz[1] - img_sz_hold[1])/2)
+            xdiff = int((img_sz[-2] - img_sz_hold[-2])/2)
+            ydiff = int((img_sz[-1] - img_sz_hold[-1])/2)
             pdf = pdf[xdiff:-xdiff,ydiff:-ydiff]
 
     if disp:
@@ -233,15 +245,17 @@ def genSampling(pdf, n_iter, tol):
     actpctg = np.sum(minIntrVec)/minIntrVec.size
     return minIntrVec, actpctg
 
-def genSamplingDir(img_sz = [256,256],
-                dirFile = '/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt',
-                pctg = 0.25,
-                cyl = [0],
-                radius = 0.1,
-                nmins = 5,
-                endSize = [256,256],
-                engfile = None):
+def genSamplingDir(img_sz=[180,180], 
+                dirFile='/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt',
+                pctg=0.25,
+                cyl=[0],
+                radius=0.2,
+                nmins=5,
+                endSize=None,
+                engfile=None):
     
+    if not endSize:
+        endSize = img_sz
     import itertools
     # load the directions
     print('Loading Directions...')
@@ -268,17 +282,19 @@ def genSamplingDir(img_sz = [256,256],
     combs = np.array(list(itertools.combinations(range(0,n),k))) # All the different vector combinations
     vecs = np.array(list(itertools.combinations(range(0,k),2))) # All the different combos that need to be checked for the energy
     engStart = np.zeros([combs.shape[0]]) # Initialization for speed of the energy
-    
+
+
     print('Running PE Electrostatics system...')
     # Run the "Potential energy" for each of the combinations
-    if 'engFile' not in locals():
+    if not engfile:
         for i in xrange(combs.shape[0]):
             for j in xrange(vecs.shape[0]):
                 engStart[i] = engStart[i] + invR[combs[i,vecs[j,0]],combs[i,vecs[j,1]]]
     else:
-        engStart = np.load(engFile)
+        engStart = np.load(engfile)
         # npy file
-    
+    #np.save('/micehome/asalerno/Documents/pyDirectionCompSense/engFile30dir.npy',engStart)
+
     print('Producing "best cases..."')
     # Build the best cases of trying to get the vectors together
     ind = engStart.argsort() # Sort from lowest energy (farthest apart) to highest
@@ -302,17 +318,17 @@ def genSamplingDir(img_sz = [256,256],
         amts[i] = vecsMin[vecsMin == i].size
     srt = amts.argsort()
     cts = amts[srt]
-    
+        
     print('Check lowest 20%')
     # Make sure we only look at the lowest 20% of the energies
     qEng = np.percentile(eng,20)
 
-    # if theres a huge difference, tack more of the lower counts on, but make sure that we aren't hitting too high energy sets
+        # if theres a huge difference, tack more of the lower counts on, but make sure that we aren't hitting too high energy sets
 
-    #vecsUnique,vecs_idx = np.unique(vecsInd,return_index = True)
-    
-    while cts[-1]/cts[0] >= 1.25:
-        #import pdb; pdb.set_trace()
+        #vecsUnique,vecs_idx = np.unique(vecsInd,return_index = True)
+        
+    while cts[-1]/cts[0] >= 1.2:
+        import pdb; pdb.set_trace()
         srt_hold = srt.copy().reshape(1,len(srt))[0,:k]
         srt_hold.sort()
         # We need to add one here as index and direction number differ by a value of one
@@ -323,26 +339,35 @@ def genSamplingDir(img_sz = [256,256],
         else:
             while eng[indx] >= qEng: # Take this if the bottom ones are too big!
                 #import pdb; pdb.set_trace();
-                arr = np.zeros(k) # Create a holder array
-                cnt = 0 # Create an iterator
-                while np.any(arr == 0):
-                    st = np.ceil(n*np.random.random(1)) # A holder for the value
+                arr = np.zeros(k)-1 # Create a holder array
+                cnt = 1 # Create an iterator
+                tooManyTimesCnt = 0
+                while np.any(arr == -1):
+                    arr[0] = srt[0]
+                    st = np.floor(n*np.random.random(1)) # A holder for the value
                     if not np.any(arr == st): # Make sure that value doesn't already exist in the holder array
-                        arr[cnt] = st; # If it doesn't, add it
-                        cnt += 1 # Move to the next location
+                        if np.any(srt[-int(np.floor(n/4)):] == st):
+                            tooManyTimesCnt += 1
+                            if tooManyTimesCnt == int(n/2):
+                                indx = np.where(np.all(srt_hold == vecsInd,axis = 1))
+                                vecsMin = np.vstack([vecsMin,srt_hold])
+                        else:
+                            arr[cnt] = st; # If it doesn't, add it
+                            cnt += 1 # Move to the next location
                 arr_hold = arr.copy().reshape((1,len(arr)))[0,:k]
                 arr_hold.sort() # Sort it out. Making sure it didn't end up too long
                 indx = np.where(np.all(arr_hold == vecsInd,axis = 1)) # find the index
                 if eng[indx] < qEng: # Make sure we oly add it if the indx is low enough
                     vecsMin = np.vstack([vecsMin,arr_hold])
             
-        for i in xrange(30):
+        for i in xrange(dirs.shape[0]):
             amts[i] = vecsMin[vecsMin == i].size
         srt = amts.argsort()
         cts = amts[srt]
+        if np.random.random(1)<.1:
+            print(cts)
     
     # Now we have to finally get the sampling pattern from this!
-    
     print('Obtaining sampling pattern...')
     [x,y] = np.meshgrid(np.linspace(-1,1,img_sz[1]),np.linspace(-1,1,img_sz[0]))
     r = np.sqrt(x**2 + y**2)
@@ -378,7 +403,7 @@ def genSamplingDir(img_sz = [256,256],
             samp_final[i,:,:] = samp_hold.reshape(np.hstack([1,endSize]))
         
         samp = samp_final
-    
+
     return samp
 
 def radialHistogram(k,rmax=np.sqrt(2),bins=50,pdf=None,sl=None,disp=1):
@@ -406,6 +431,8 @@ def radialHistogram(k,rmax=np.sqrt(2),bins=50,pdf=None,sl=None,disp=1):
     plt.title('Radial Histogram')
     plt.xlabel('Radius')
     plt.ylabel('Counts')
+    
+    return cnts, binEdges
 
     #if sl:
         #pltSliceHalf(pdf,sl,rads)
@@ -462,3 +489,33 @@ def loRes(im,pctg):
     data = np.fft.fftshift(loResMask)*tf.fft2c(im, ph=ph_ones)
     im_lr = tf.ifft2c(data,ph=ph_ones)
     return im_lr
+    
+def makePEtable(k,filename):
+    xLoc,yLoc = np.where(k)
+    sx,sy = k.shape
+    xLoc += int(-sy/2 + 1)
+    xLocArrStr = np.char.mod('%i', xLoc)
+    xLocStr = "\n    ".join(xLocArrStr)
+
+    yLoc += int(-sx/2 + 1)
+    yLocArrStr = np.char.mod('%i', yLoc)
+    yLocStr = "\n    ".join(yLocArrStr)
+
+    print('Saving petable to: ' + filename)
+    with open(filename,'w') as out:
+        t1 = 't1 = '
+        t2 = 't2 = '
+        sp = '    '
+        out.write('{}\n{}{}\n{}\n{}{}'.format(t1,sp,xLocStr,t2,sp,yLocStr))
+
+def readPEtable(inputfile):
+    t1list=parse_petable_file(inputfile,'t1')
+    t2list=parse_petable_file(inputfile,'t2')
+    t1len = np.max(t1list) - np.min(t1list) + 1
+    t2len = np.max(t2list) - np.min(t2list) + 1
+    t1list -= np.min(t1list)
+    t2list -= np.min(t2list)
+    k = np.zeros([t1len,t2len])
+    k[t1list,t2list] = 1
+    return k
+    
