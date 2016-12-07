@@ -25,14 +25,14 @@ def ifft2c(data_to_ifft,ph,axes=(-2,-1)):
     return IFFTdata
 
 def xfm(data_to_xfm,wavelet = 'db4',mode='per'):
-    XFMdata = pywt.wavedec2(data_to_xfm,wavelet,mode)
+    XFMdata = pywt.wavedec2(data_to_xfm.reshape(data_to_xfm.shape[-2:]),wavelet,mode)
     return XFMdata
 
 def ixfm(data_to_ixfm,wavelet = 'db4',mode='per'):
     IXFMdata = pywt.waverec2(data_to_ixfm,wavelet,mode)
     return IXFMdata
 
-def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
+def TV(im, N, strtag, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,None]):
     
     '''
     A finite differences sampling operation done on datasets to spply some 
@@ -50,21 +50,22 @@ def TV(im,N,strtag,dirWeight = 1,dirs = None,nmins = 0,M=None):
             #nstacks += nmins
             #axisvals.append(0)
     
-    
+    #import pdb; pdb.set_trace()
     res = np.zeros(np.hstack([len(strtag), im.shape]))
-    
+    im = np.squeeze(im)
+    inds = dirInfo[3]
     cnt = 0
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
             #res[cnt,:,:] = np.roll(data,1,axis = axisvals[i]) - data
-            res[i,:,:] = np.roll(im,-1,axis = i) - im
+            res[i] = np.roll(im,-1,axis = i) - im
             #cnt += 1
         elif strtag[i] == 'diff':
             #res[cnt:cnt+nmins,:,:] = TVDir(data)
-            res[i,:,:] = dirWeight*d.least_Squares_Fitting(im,N,strtag,dirs,nmins,M)
+            res[i] = dirWeight*d.least_Squares_Fitting(im,N,strtag,dirs,inds,dirInfo[0]).real
             #cnt += nmins
     
-    return res
+    return res.reshape(np.hstack([len(strtag), N]))
 
 def matlab_style_gauss2D(im,shape=(3,3),sigmaX = 0):
     """
