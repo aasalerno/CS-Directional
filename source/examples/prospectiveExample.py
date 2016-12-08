@@ -56,8 +56,10 @@ phIter = 0
 
 # Multi-step parameters
 xtol = [1e-2, 1e-3, 5e-4, 5e-4, 5e-4]
-TV = [0.01, 0.005, 0.002, 0.001, 0.0005]
-XFM = [0.01, 0.005, 0.002, 0.001, 0.0005]
+#TV = [0.01, 0.005, 0.002, 0.001, 0.0005]
+TV = [0]*5
+#XFM = [0.01, 0.005, 0.002, 0.001, 0.0005]
+XFM = [0]*5
 radius = 0.2
 
 
@@ -72,11 +74,12 @@ imf = fullImData[sliceChoice,:,:]
 
 
 #read in the US data
-usImData = rff.getDataFromFID(petable,inputdirectory,3)[0,:,:,:]
-usImData = usImData/np.max(abs(usImData))
-N = usImData.shape
-usImData = np.rollaxis(usImData,axis=np.argmax(N))
-N = usImData.shape
+#usImData = rff.getDataFromFID(petable,inputdirectory,3)[0,:,:,:]
+#usImData = usImData/np.max(abs(usImData))
+#N = usImData.shape
+#usImData = np.rollaxis(usImData,axis=np.argmax(N))
+#N = usImData.shape
+usImData = np.load('BrukerPhantom/phantom_25per_seed' + str(sd) + '_294_294.npy')
 im = np.ascontiguousarray(usImData[sliceChoice,:,:])
 N = im.shape
 
