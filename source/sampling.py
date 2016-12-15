@@ -23,6 +23,7 @@ import os.path
 from sys import path as syspath
 syspath.append('/home/bjnieman/source/vnmr')
 from varian_read_file import parse_petable_file
+import transforms as tf
 
 EPS = np.finfo(float).eps
 
@@ -479,15 +480,18 @@ def signalMask(im, thresh=0.1, iters = None):
     
 def loRes(im,pctg):
     N = im.shape
+    ph_ones=np.ones(N)
     [x,y] = np.meshgrid(np.linspace(-1,1,N[1]),np.linspace(-1,1,N[0]))
     rsq = x**2 + y**2
     loResMaskLocs = np.where(rsq < pctg)
     loResMask = np.zeros(N)
     loResMask[loResMaskLocs] = 1
     loResMask = sp.ndimage.filters.gaussian_filter(loResMask,3)
-    ph_ones = np.ones(N)
     data = np.fft.fftshift(loResMask)*tf.fft2c(im, ph=ph_ones)
-    im_lr = tf.ifft2c(data,ph=ph_ones)
+    im_lr_wph = tf.ifft2c(data,ph=ph_ones)
+    ph_lr = tf.matlab_style_gauss2D(im_lr_wph,shape=(5,5))
+    ph_lr = np.exp(1j*ph_lr)
+    im_lr = tf.ifft2c(data, ph=ph_lr)
     return im_lr
     
 def makePEtable(k,filename):

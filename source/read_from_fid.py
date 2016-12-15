@@ -59,10 +59,10 @@ class dummyopt():
 
 def getDataFromFID(petable,inputdirectory,imouse):
     
-    options=dummyopt(complexavg=True,petable=petable,petable_ordered_pairs=True,outputreps=True)
+    options=dummyopt(complexavg=False,petable=petable,petable_ordered_pairs=True,outputreps=True)
     inputAcq = brf.BrukerAcquisition(inputdirectory)
     seqrec = seqmodule.seq_reconstruction(inputAcq,options,"./temp.mnc")
     seqrec.gen_kspace(imouse=imouse)
     seqrec.Pftacq = False
     seqrec.recon()
-    return seqrec.image_data[-1]
+    return seqrec.image_data[-1,1]

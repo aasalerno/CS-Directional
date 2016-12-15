@@ -34,28 +34,33 @@ def derivative_fun(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0.1, dirs=No
     '''
     #import pdb; pdb.set_trace()
     disp = 0
+    gTV = 0
+    gXFM = 0
+    
     gObj = grads.gObj(x,N,ph,data,k) # Calculate the obj function
-    gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a) # Calculate the TV gradient
-    gXFM = grads.gXFM(x,N,wavelet=wavelet,mode=mode,a=a)
+    if lam1 > 1e-6:
+        gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a) # Calculate the TV gradient
+    if lam2 > 1e-6:
+        gXFM = grads.gXFM(x,N,wavelet=wavelet,mode=mode,a=a)
     x.shape = (x.size,)
     #import pdb; pdb.set_trace();
-    if disp:
-        minval = np.min(np.hstack([gObj,lam1*gTV,lam2*gXFM]))
-        maxval = np.max(np.hstack([gObj,lam1*gTV,lam2*gXFM]))
-        f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
-        im1 = ax1.imshow(abs(gObj),interpolation='none', clim=(minval,maxval))
-        ax1.set_title('Data Cons. Term')
-        plt.colorbar(im1,ax=ax1)
-        im2 = ax2.imshow(abs(lam1*gTV),interpolation='none',clim=(minval,maxval))
-        ax2.set_title('lam1*TV Term')
-        plt.colorbar(im2,ax=ax2)
-        im3 = ax3.imshow(abs(lam2*gXFM),interpolation='none',clim=(minval,maxval))
-        ax3.set_title('lam2*XFM Term')
-        plt.colorbar(im3,ax=ax3)
-        im4 = ax4.imshow(abs(gObj + lam1*gTV + lam2*gXFM),interpolation='none')
-        ax4.set_title('Total Grad')
-        plt.colorbar(im4,ax=ax4)
-        #plt.show()
+    #if disp:
+        #minval = np.min(np.hstack([gObj,lam1*gTV,lam2*gXFM]))
+        #maxval = np.max(np.hstack([gObj,lam1*gTV,lam2*gXFM]))
+        #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
+        #im1 = ax1.imshow(abs(gObj),interpolation='none', clim=(minval,maxval))
+        #ax1.set_title('Data Cons. Term')
+        #plt.colorbar(im1,ax=ax1)
+        #im2 = ax2.imshow(abs(lam1*gTV),interpolation='none',clim=(minval,maxval))
+        #ax2.set_title('lam1*TV Term')
+        #plt.colorbar(im2,ax=ax2)
+        #im3 = ax3.imshow(abs(lam2*gXFM),interpolation='none',clim=(minval,maxval))
+        #ax3.set_title('lam2*XFM Term')
+        #plt.colorbar(im3,ax=ax3)
+        #im4 = ax4.imshow(abs(gObj + lam1*gTV + lam2*gXFM),interpolation='none')
+        #ax4.set_title('Total Grad')
+        #plt.colorbar(im4,ax=ax4)
+        ##plt.show()
     
     return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
@@ -66,25 +71,30 @@ def optfun(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0, dirs=None,
     '''
     #dirInfo[0] is M
     #import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
+    tv = 0
+    xfm = 0
     data.shape = N
     x.shape = N
-    obj_data = tf.ifft2c(data - np.fft.fftshift(k)*tf.fft2c(x,ph),ph)
-    obj = np.sqrt(np.sum(obj_data*obj_data.conj())) #L2 Norm
+    obj_data = np.fft.fftshift(k)*(data - tf.fft2c(x,ph))
+    obj = np.sum(obj_data*obj_data.conj()) #L2 Norm
     #tv = np.sum(abs(tf.TV(x,N,strtag,dirWeight,dirs,nmins,M))) #L1 Norm
-    tv = np.sum((1/a)*np.log(np.cosh(a*tf.TV(x,N,strtag,dirWeight,dirs,nmins,dirInfo))))
+    if lam1:
+        tv = np.sum((1/a)*np.log(np.cosh(a*tf.TV(x,N,strtag,dirWeight,dirs,nmins,dirInfo))))
     #xfm cost calc
-    if len(N) > 2:
-        xfm=0
-        for kk in range(N[0]):
-            wvlt = tf.xfm(x[kk,:,:],wavelet=wavelet,mode=mode)
-            xfm += np.sum((1/a)*np.log(np.cosh(a*wvlt[0])))
+    if lam2:
+        if len(N) > 2:
+            xfm=0
+            for kk in range(N[0]):
+                wvlt = tf.xfm(x[kk,:,:],wavelet=wavelet,mode=mode)
+                xfm += np.sum((1/a)*np.log(np.cosh(a*wvlt[0])))
+                for i in xrange(1,len(wvlt)):
+                    xfm += np.sum([np.sum((1/a)*np.log(np.cosh(a*wvlt[i][j]))) for j in xrange(3)]) 
+        else:
+            wvlt = tf.xfm(x,wavelet=wavelet,mode=mode)
+            xfm = np.sum((1/a)*np.log(np.cosh(a*wvlt[0])))
             for i in xrange(1,len(wvlt)):
                 xfm += np.sum([np.sum((1/a)*np.log(np.cosh(a*wvlt[i][j]))) for j in xrange(3)]) 
-    else:
-        wvlt = tf.xfm(x,wavelet=wavelet,mode=mode)
-        xfm = np.sum((1/a)*np.log(np.cosh(a*wvlt[0])))
-        for i in xrange(1,len(wvlt)):
-            xfm += np.sum([np.sum((1/a)*np.log(np.cosh(a*wvlt[i][j]))) for j in xrange(3)]) 
     
     x.shape = (x.size,) # Not the most efficient way to do this, but we need the shape to reset.
     data.shape = (data.size,)

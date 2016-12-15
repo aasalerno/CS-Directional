@@ -1129,9 +1129,7 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
     c = unknown_options['c']
     alpha0 = unknown_options['alpha_0']
     xtol = unknown_options['xtol']
-    N = unknown_options['N']
-    TVWeight = unknown_options['TVWeight']
-    XFMWeight = unknown_options['XFMWeight']
+    lineSearchItnLim = unknown_options['lineSearchItnLim']
     f = fun # Function
     fprime = jac # Derivative function
     epsilon = eps # Gradient tolerance
@@ -1168,55 +1166,32 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
         cnt += 1
         old_fpval_hold = myfprime(x0 + alpha_k*pk)
         old_fpval = dot(old_fpval_hold,-old_pk)
-        try:
-            '''
-            alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
-                     _line_search_wolfe12(f, myfprime, xk, pk, gfk, old_fval,
-                                          old_old_fval, c2=0.4)
-            '''
-            
-            alpha_k, fc, gc, old_fval, gfkp1, lsiter = line_search_simpleback(f, myfprime, xk, pk, gfk, old_fval, old_fpval = old_fpval, alpha=alpha0, c=c, args=args)
-            
-            
-            #alpha_k, fc, gc, old_fval = line_search_armijo(f, xk, pk, gfk,                                                              old_fval, c1=0.6, alpha0=1)
         
-        except _LineSearchError:
-            # Line search failed to find a better solution.
-            warnflag = 2
-            break
+        alpha_k, fc, gc, old_fval, gfkp1, lsiter = line_search_simpleback(f, myfprime, xk, pk, gfk, old_fval, old_fpval = old_fpval, alpha=alpha0, c=c, args=args)
         
         # This makes sure that the value of alpha0 is always <= 1
-        if lsiter < 1:
-            if alpha0/c <= 1:
-                alpha0 = alpha0 / c
-        elif lsiter > 2:
-            alpha0 = alpha0 * c
+        if (alpha_k>1e-8):
+            alpha0 = alpha_k/c
+        if lsiter == 1:
+            #if alpha0/(c**2) <= 1:
+            alpha0 = alpha0 / (c**2)
         
-        #pdb.set_trace();
-        #print("---------------------------------------")
-        saveFig = 0
-        #import pdb; pdb.set_trace()
-        if saveFig:
-            plt.savefig('gradimgs/allOn_grad_iter_TV_' + `TVWeight` + '_XFM_' + `XFMWeight` + '_' + `k` + '.png')
-            plt.close("all")
-            plt.imshow(xk.reshape(N))
-            plt.savefig('gradimgs/allOn_xk_iter_TV_' + `TVWeight` + '_XFM_' + `XFMWeight` + '_' + `k` + '.png')
-            plt.close("all")
         xdiff = alpha_k * pk
         xk = xk + xdiff
+        
         if retall:
             allvecs.append(xk)
         if gfkp1 is None:
             gfkp1 = myfprime(xk)
-        
-        if dot(gfkp1,gfk) < 0:
-            alpha0 = alpha0/c**2
             
         yk = gfkp1 - gfk
+        
         beta_k = max(0, numpy.dot(yk, gfkp1) / deltak)
+        
         old_pk = pk.copy()
         pk = -gfkp1 + beta_k * pk
         gfk = gfkp1
+        #print('Current step: ', alpha_k, '\nbeta_k: ', beta_k, '\ndot(gfkp1,old_pk): ', np.dot(gfkp1,old_pk), '\ndot(beta*pk,old_pk): ', np.dot(pk,old_pk))
         gnorm = vecnorm(gfk, ord=norm) #This we need to try to find some way to kick out better ways
         if callback is not None:
             callback(xk)

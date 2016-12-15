@@ -661,7 +661,7 @@ def scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0):
 # Line search using a simple backtracking algorithm 
 def line_search_simpleback(f,fprime,xk,pk,gfk=None,
                            old_fval=None, old_fpval = None,alpha=1,c=0.6,
-                           amax=50,amin=1e-8,gtol=1e-14,args=()):
+                           amax=50,amin=1e-8,gtol=1e-14,lineSearchItnLim=30,args=()):
     '''
     Parameters
     ----------
@@ -736,14 +736,15 @@ def line_search_simpleback(f,fprime,xk,pk,gfk=None,
     
     derphi0 = np.dot(gfk,pk)
     
-    stp, old_fval, old_old_fval, lsiter = scalar_search_simpleback(phi, derphi, phi0=old_fval,
-                                                  derphi0 = old_fpval, alpha = alpha, c = c, amax = amax, amin = amin)
+    #stp, old_fval, old_old_fval, lsiter = scalar_search_simpleback(phi, derphi, phi0=old_fval,
+                                                  #derphi0 = old_fpval, alpha = alpha, c = c, amax = amax, amin = amin, lineSearchItnLim=lineSearchItnLim)
+    stp, old_fval, lsiter = bisection_linesearch(phi,0.0,alpha,tol=1e-3,maxiter=lineSearchItnLim)
     
-    
+    #print('Step size: ' + str(stp))
     return stp, fc[0], gc[0], old_fval, fprime(xk+stp*pk), lsiter
     
 def scalar_search_simpleback(phi, derphi, phi0=None, old_phi0=None, derphi0=None,
-alpha=1,c=0.6,amax=50,amin=1e-8,maxiter = 30):
+alpha=1,c=0.6,amax=50,amin=1e-8,lineSearchItnLim = 30):
                                 
     '''
     Scalar function search for alpha that satisfies simple backtracking algorithm
@@ -810,18 +811,46 @@ alpha=1,c=0.6,amax=50,amin=1e-8,maxiter = 30):
             #import warningsh
             #warnings.warn('We are at a point where phi1 > phi0 in both directions')
 
-    phi_best = phi0
-    while (phi1 < phi_best) and lsiter < maxiter: # I worry that the max iter may be too large...
-        #import pdb; pdb.set_trace()
-        phi_best = phi1
-        lsiter += 1
-        alpha = c*alpha
-        phi1 = phi(alpha)
+    phi_best = phi1
+    #import pdb; pdb.set_trace()
         
-    # ----------------------------------------------------------------------    
-    if lsiter >= maxiter:
-        # alpha = None # Failed
-        raise _LineSearchError()
+    while ((phi1 <= phi_best) and (lsiter < lineSearchItnLim)): # I worry that the max iter may be too large...
+       #import pdb; pdb.set_trace()
+       phi_best = phi1
+       alpha_best = alpha
+       lsiter += 1
+       alpha = c*alpha
+       phi1 = phi(alpha)
+
+   # ----------------------------------------------------------------------    
+    if (phi0 < phi_best):
+       # alpha = None # Failed
+       #raise _LineSearchError()
+       alpha_best = 0
+       phi1 = phi0
+
+    return alpha_best,phi_best,phi0,lsiter
     
-    return alpha, phi1, phi0, lsiter
+def bisection_linesearch(f,a,b,tol=1e-3,aval=None,bval=None,maxiter=50):
+    if (aval is None):
+        aval = f(a)
+    if (bval is None):
+        bval = f(b)
+    c = (a+b)/2.0
+    lsiter=0
+    while ( ((b-a)/2.0 > tol) and (lsiter<maxiter) ):
+        cval = f(c)
+        inds=np.argsort([aval,cval,bval])
+        if (inds[0]==1):
+            (a,aval,b,bval) = [ (a,aval,c,cval)  , (c,cval,b,bval) ][inds[1]==2] 
+        elif (inds[0]==2):
+            a=c; aval=cval
+            b=2*b-c; bval=f(b)
+        else:
+            b=c; bval=cval
+            a=2*a-c; aval=f(a)
+        c = (a+b)/2.0
+        lsiter += 1
+    cval = f(c)
+    return c,cval,lsiter 
     

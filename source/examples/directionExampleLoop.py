@@ -44,7 +44,8 @@ engfile='/micehome/asalerno/Documents/pyDirectionCompSense/engFile30dir.npy'
 #engfile = None
 strtag = ['diff','spatial', 'spatial']
 # DirType = 2
-ItnLim = 150
+ItnLim = 50
+lineSearchItnLim = 30
 epsilon = 1e-6
 l1smooth = 1e-15
 xfmNorm = 1
@@ -146,7 +147,7 @@ im_sp = im_dc.copy().reshape(N)
 for i in range(len(TV)):
     args = (N, TV[i], XFM[i], data_b1, k, strtag, ph_b1, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
     im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun,
-                            options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
+                            options={'maxiter': ItnLim, 'lineSearchItnLim': lineSearchItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
         
     if np.any(np.isnan(im_result['x'])):
         print('Some nan''s found. Dropping TV and XFM values')

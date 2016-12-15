@@ -18,7 +18,6 @@ import sampling as samp
 import direction as d
 # from scipy import optimize as opt
 import optimize as opt
-import scipy.optimize as spopt
 from recon_CS import *
 import read_from_fid as rff
 import saveFig
@@ -35,7 +34,8 @@ idFull = "/hpf/largeprojects/MICe/asalerno/Bruker_cyltests/ASundersampled_2016-1
 peFull = "/hpf/largeprojects/MICe/bjnieman/Bruker_cyltests/cylbruker_nTRfeath18_294_294"
 strtag = ['spatial', 'spatial']
 dirWeight = 0
-ItnLim = 150
+ItnLim = 50
+lineSearchItnLim = 30
 epsilon = 1e-6
 l1smooth = 1e-15
 xfmNorm = 1
@@ -56,10 +56,10 @@ phIter = 0
 
 # Multi-step parameters
 xtol = [1e-2, 1e-3, 5e-4, 5e-4, 5e-4]
-#TV = [0.01, 0.005, 0.002, 0.001, 0.0005]
-TV = [0]*5
-#XFM = [0.01, 0.005, 0.002, 0.001, 0.0005]
-XFM = [0]*5
+TV = [0.1, 0.05, 0.01, 0.005, 0.001]#, 0.001]#, 0.0005]
+#TV = [0]
+XFM = [0.1, 0.05, 0.01, 0.005, 0.001]#, 0.001]#, 0.0005]
+#XFM = [0]*5
 radius = 0.2
 
 
@@ -125,7 +125,8 @@ maxval = np.max(abs(im))
 pdfDiv = pdf.copy()
 pdfZeros = np.where(pdf<0.01)
 pdfDiv[pdfZeros] = 1
-im_dc = tf.ifft2c(data / np.fft.ifftshift(pdfDiv), ph=ph_scan).real.flatten().copy()
+#im_dc = tf.ifft2c(data / np.fft.ifftshift(pdfDiv), ph=ph_scan).real.flatten().copy()
+im_dc = im_scan.real.flatten()
 #im_dc = np.zeros(N).flatten()
 #im_dc = abs(tf.ifft2c(data / np.fft.ifftshift(pdfDiv), ph=ph_scan).flatten().copy())
 
@@ -137,13 +138,13 @@ data = np.ascontiguousarray(data)
 for i in range(len(TV)):
     args = (N, TV[i], XFM[i], data, k, strtag, ph_scan, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
     im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun,
-                            options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
+                            options={'maxiter': ItnLim, 'lineSearchItnLim': lineSearchItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
     
     if np.any(np.isnan(im_result['x'])):
         print('Some nan''s found. Dropping TV and XFM values')
     else:
         im_dc = im_result['x'].reshape(N)
-        alpha_k = im_result['alpha_k']
+        #alpha_k = im_result['alpha_k']
     
 
 im_res = im_dc

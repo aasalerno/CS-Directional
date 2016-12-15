@@ -60,7 +60,7 @@ def gXFM(x,N,wavelet='db1',mode='per',
         
         grad[kk,:,:] = tf.ixfm(gwvlt,wavelet=wavelet,mode=mode).reshape(shp)
     
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     return grad
 
 def gObj(x,N,ph,
@@ -96,10 +96,10 @@ def gObj(x,N,ph,
     #samp_mask = samp_mask.reshape(N)
     
     for kk in range(N[0]):
-        x_data = np.fft.fftshift(samp_mask[kk,:,:])*tf.fft2c(x0[kk,:,:],ph0[kk,:,:]); # Issue, feeding in 3D data to a 2D fft alg...
+        x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:]); # Issue, feeding in 3D data to a 2D fft alg...
     
-        grad[kk,:,:] = -2*tf.ifft2c(data_from_scanner[kk,:,:] - x_data,ph0[kk,:,:]).real; # -1* & ,real
-    import pdb; pdb.set_trace()
+        grad[kk,:,:] = -2*tf.ifft2c(np.fft.fftshift(samp_mask[kk,:,:])*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:]).real; # -1* & ,real
+    #import pdb; pdb.set_trace()
     return grad
 
 def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=None, p=1, l1smooth=1e-15, a=1.0):
@@ -138,9 +138,7 @@ def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=None, p=1, l1smooth
                         for qr in xrange(M.shape[1]):
                             grad[d,i,:,:] += np.dot(dIM[d,qr,colUse],dDirx[d,:,:,qr])
             grad[:,i,:,:] *= dirWeight
-    # Need to make sure here that we're iterating over the correct dimension
-    # As of right now, this assumes that we're working on a slice by slice basis
-    # I'll have to implement 3D data work soon.
-    import pdb; pdb.set_trace()
+    
+    #import pdb; pdb.set_trace()
     grad = np.sum(grad,axis=1)
     return grad

@@ -34,6 +34,7 @@ for sd in seeds:
     strtag = ['spatial', 'spatial']
     dirWeight = 0
     ItnLim = 150
+    lineSearchItnLim = 30
     epsilon = 1e-6
     l1smooth = 1e-15
     xfmNorm = 1
@@ -52,7 +53,7 @@ for sd in seeds:
 
     phIter = 0
     #sliceChoices = [127, 150, 180, 190, 200, 210, 220]
-    sliceChoices = [127]
+    sliceChoices = [134]
     #pctgs = [0.125, 0.25, 0.33, 0.5, 0.75, 0.9]
     pctgs = [0.25]
 
@@ -60,8 +61,8 @@ for sd in seeds:
         for pctg in pctgs:
             # Multi-step parameters
             xtol = [1e-2, 1e-3, 5e-4, 5e-4, 5e-4]
-            TV = [0.01, 0.005, 0.002, 0.001, 0.0005]
-            XFM = [0.01, 0.005, 0.002, 0.001, 0.0005]
+            TV = [0.05, 0.01, 0.005, 0.002, 0.001]
+            XFM = [0.05, 0.01, 0.005, 0.002, 0.001]
             radius = 0.2
 
                     # Make the data go from clim=[0,1]
@@ -137,8 +138,9 @@ for sd in seeds:
             # Optimization algortihm -- this is where everything culminates together
             for i in range(len(TV)):
                 args = (N, TV[i], XFM[i], data, k, strtag, ph_scan, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
-                im_result = opt.minimize(optfun, im_dc, args=args, method=method, jac=derivative_fun,
-                                        options={'maxiter': ItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
+                im_result = opt.minimize(optfun, im_dc, args=args, method=method,
+                                        jac=derivative_fun, 
+                                        options={'maxiter': ItnLim, 'lineSearchItnLim': lineSearchItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
                 
                 if np.any(np.isnan(im_result['x'])):
                     print('Some nan''s found. Dropping TV and XFM values')
@@ -171,5 +173,5 @@ for sd in seeds:
             #saveFig.save("brainData/P14/pctgComp/totComp_phUSCheck_5rounds_P_" + str(P) + '_pctg_' + str(pctg) + '_sl_' + str(sliceChoice))
             
         #np.save("brainData/seedTest/" + str(int(pctg*100)) + "pctg_seed" + str(sd) + '.npy',im_res)
-        test = np.load("brainData/seedTest/" + str(int(pctg*100)) + "pctg_seed" + str(sd) + '.npy')
+        #test = np.load("brainData/seedTest/" + str(int(pctg*100)) + "pctg_seed" + str(sd) + '.npy')
         #samp.makePEtable(k,"brainData/seedTest/petable_" + str(int(pctg*100)) + "pctg_seed" + str(sd) + '_' + str(int(N[0])) + '_' + str(int(N[1])) + '.txt')
