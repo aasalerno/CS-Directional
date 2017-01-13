@@ -1196,6 +1196,7 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
         if callback is not None:
             callback(xk)
         k += 1
+        #import pdb; pdb.set_trace()
 
     fval = old_fval
     if warnflag == 2:
@@ -2554,9 +2555,9 @@ def brute(func, ranges, args=(), Ns=20, full_output=0, finish=fmin,
 
     """
     N = len(ranges)
-    if N > 40:
-        raise ValueError("Brute Force not possible with more "
-                         "than 40 variables.")
+    #if N > 40:
+        #raise ValueError("Brute Force not possible with more "
+                         #"than 40 variables.")
     lrange = list(ranges)
     for k in range(N):
         if type(lrange[k]) is not type(slice(None)):

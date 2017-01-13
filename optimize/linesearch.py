@@ -16,6 +16,7 @@ from __future__ import division, print_function, absolute_import
 from scipy.optimize import minpack2
 import numpy as np
 from scipy.lib.six import xrange
+import matplotlib.pyplot as plt
 
 __all__ = ['line_search_wolfe1', 'line_search_wolfe2',
            'scalar_search_wolfe1', 'scalar_search_wolfe2',
@@ -821,7 +822,8 @@ alpha=1,c=0.6,amax=50,amin=1e-8,lineSearchItnLim = 30):
        lsiter += 1
        alpha = c*alpha
        phi1 = phi(alpha)
-
+    
+    
    # ----------------------------------------------------------------------    
     if (phi0 < phi_best):
        # alpha = None # Failed
@@ -852,5 +854,13 @@ def bisection_linesearch(f,a,b,tol=1e-3,aval=None,bval=None,maxiter=50):
         c = (a+b)/2.0
         lsiter += 1
     cval = f(c)
+    
+    #### AS ###
+    #xa = np.linspace(-101,101,501)
+    #ya = np.zeros(xa.size)
+    #for i in range(xa.size):
+        #ya[i] = f(xa[i])
+    #plt.plot(xa,ya); plt.title('Optfun as a function of alpha'); plt.show()
+    
     return c,cval,lsiter 
     
