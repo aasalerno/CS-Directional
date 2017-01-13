@@ -8,18 +8,23 @@ plt.rcParams['image.cmap'] = 'gray'
 
 import os.path
 from sys import path as syspath
+syspath.append("/home/asalerno/Documents/pyDirectionCompSense/")
 syspath.append("/home/asalerno/Documents/pyDirectionCompSense/source/")
-os.chdir(
-    '/home/asalerno/Documents/pyDirectionCompSense/')  # Change this to the directory that you're saving the work in
+os.chdir('/home/asalerno/Documents/pyDirectionCompSense/')  # Change this to the directory that you're saving the work in
 import transforms as tf
 import scipy.ndimage.filters
 import grads
 import sampling as samp
 import direction as d
-# from scipy import optimize as opt
+
 import optimize as opt
 import scipy.optimize as spopt
-from recon_CS import *
+#from recon_CS import *
+import DC_TV_XFM_f_df as funs
+
+f = funs.objectiveFunction
+df = funs.derivativeFunction
+
 import read_from_fid as rff
 import saveFig
 
@@ -27,7 +32,7 @@ np.random.seed(534)
 
 inputdirectory="/hpf/largeprojects/MICe/segan/exercise_irradiation/bruker_data/running_C/P14/20160607_124310_Running_C_1_1"
 petable = "/hpf/largeprojects/MICe/bjnieman/Bruker_cyltests/cylbruker_nTRfeath18_294_294"
-strtag = ['spatial', 'spatial']
+strtag = ['','spatial', 'spatial']
 dirWeight = 0
 ItnLim = 30
 lineSearchItnLim = 30
@@ -49,7 +54,7 @@ a = 10.0 # value used for the tanh argument instead of sign
 
 phIter = 0
 #sliceChoices = [127, 150, 180, 190, 200, 210, 220]
-sliceChoice = 334-190
+sliceChoice = 150
 #pctgs = [0.125, 0.25, 0.33, 0.5, 0.75, 0.9]
 pctgs = [0.25]#,0.33,0.5] 
 xtol = [1e-2, 1e-3, 5e-4, 5e-4, 5e-4]
@@ -57,7 +62,7 @@ TV = [0.01, 0.005, 0.002, 0.001]
 XFM = [0.01, 0.005, 0.002, 0.001]
 radius = 0.2
 
-im = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/P14/data/fullySampledBrain.npy')#[sliceChoice-1,:,:]
+im = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/P14/data/fullySampledBrain.npy')[sliceChoice,:,:]
 N = np.array(im.shape)  # image Size
 #tupleN = tuple(N)
 #pctg = 0.25  # undersampling factor
@@ -65,11 +70,11 @@ N = np.array(im.shape)  # image Size
 P = 2
 
 for pctg in pctgs:
-    print(pctg)
+    #print(pctg)
     # Generate the PDF for the sampling case -- note that this type is only used in non-directionally biased cases.
     while True:
         try:
-            print(radius)
+            #print(radius)
             pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=np.hstack([1, N[-2:]]), style='mult')
             break
         except:
@@ -79,6 +84,7 @@ for pctg in pctgs:
     if len(N) == 2:
         N = np.hstack([1, N])
         k = k.reshape(N)
+        im = im.reshape(N)
     elif len(N) == 3:
         k = k.reshape(np.hstack([1,N[-2:]])).repeat(N[0],0)
 
@@ -88,9 +94,9 @@ for pctg in pctgs:
     data = np.zeros(N,complex)
     im_dc = np.zeros(N,complex)
     im_scan = np.zeros(N,complex)
-    print('Looping through data')
+    #print('Looping through data')
     for i in range(N[0]):
-        print(i)
+        #print(i)
         data[i,:,:] = np.fft.ifftshift(k[i,:,:]) * tf.fft2c(im[i,:,:], ph=ph_ones)
 
         # IMAGE from the "scanner data"
@@ -112,12 +118,11 @@ for pctg in pctgs:
     im_sp = im_dc.copy().reshape(N)
     data = np.ascontiguousarray(data)
     
-    print('Starting the loop')
+    #print('Starting the loop')
     for i in range(len(TV)):
         args = (N, TV[i], XFM[i], data, k, strtag, ph_scan, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
-        im_result = opt.minimize(optfun, im_dc, args=args, method=method,
-                                jac=derivative_fun, 
-                                options={'maxiter': ItnLim, 'lineSearchItnLim': lineSearchItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
+        im_result = opt.minimize(f, im_dc, args=args, method=method, jac=df, 
+                                options={'maxiter': ItnLim, 'lineSearchItnLim': lineSearchItnLim, 'gtol': 0.01, 'disp': 0, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
         
         if np.any(np.isnan(im_result['x'])):
             print('Some nan''s found. Dropping TV and XFM values')
