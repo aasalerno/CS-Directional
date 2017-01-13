@@ -9,9 +9,7 @@ import transforms as tf
 import matplotlib.pyplot as plt
 
 
-def gXFM(x,N,wavelet='db1',mode='per',
-         p = 1,
-         l1smooth = 1e-15,a=10):
+def gXFM(x, N, wavelet='db1', mode='per', p=1, a=10):
     '''
     In this code, we apply an approximation of what the 
     value would be for the gradient of the XFM (usually wavelet)
@@ -63,9 +61,7 @@ def gXFM(x,N,wavelet='db1',mode='per',
     #import pdb; pdb.set_trace()
     return grad
 
-def gObj(x,N,ph,
-         data_from_scanner,
-         samp_mask):
+def gDataCons(x, N, ph, data_from_scanner, samp_mask):
     '''
     Here, we are attempting to get the objective derivative from the
     function. This gradient is how the current data compares to the 
@@ -102,7 +98,7 @@ def gObj(x,N,ph,
     #import pdb; pdb.set_trace()
     return grad
 
-def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=None, p=1, l1smooth=1e-15, a=1.0):
+def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,None,None], a=10):
     #import pdb; pdb.set_trace()
     if nmins:
         M = dirInfo[0]
@@ -125,6 +121,7 @@ def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=None, p=1, l1smooth
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
             TV_dataRoll = np.roll(TV_data[i,:,:],1,axis=i)
+            #import pdb; pdb.set_trace()
             grad[:,i,:,:] = -np.tanh(a*(TV_data[i,:,:])) + np.tanh(a*(TV_dataRoll))
             #grad[i,:,:] = -np.sign(TV_data[i,:,:]) + np.sign(TV_dataRoll)
         elif strtag[i] == 'diff':
