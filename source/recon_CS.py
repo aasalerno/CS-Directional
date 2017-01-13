@@ -37,7 +37,7 @@ def derivative_fun(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0.1, dirs=No
     gTV = 0
     gXFM = 0
     
-    gObj = grads.gObj(x,N,ph,data,k) # Calculate the obj function
+    gDataCons = grads.gDataCons(x,N,ph,data,k) # Calculate the obj function
     if lam1 > 1e-6:
         gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a) # Calculate the TV gradient
     if lam2 > 1e-6:
@@ -62,7 +62,7 @@ def derivative_fun(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0.1, dirs=No
         #plt.colorbar(im4,ax=ax4)
         ##plt.show()
     
-    return (gObj + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
+    return (gDataCons + lam1*gTV + lam2*gXFM).flatten() # Export the flattened array
 
 def optfun(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0, dirs=None,
            dirInfo=[None,None,None,None], nmins=0,wavelet='db4',mode="per",a=1.0):
@@ -70,7 +70,6 @@ def optfun(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0, dirs=None,
     This is the optimization function that we're trying to optimize. We are optimizing x here, and testing it within the funcitons that we want, as called by the functions that we've created
     '''
     #dirInfo[0] is M
-    #import pdb; pdb.set_trace()
     #import pdb; pdb.set_trace()
     tv = 0
     xfm = 0
