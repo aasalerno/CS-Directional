@@ -11,7 +11,6 @@ from __future__ import division
 import numpy as np
 import numpy.fft as fft
 import pywt
-#from rwt.wavelets import daubcqf
 import direction as d
 
 EPS = np.finfo(float).eps
@@ -32,6 +31,12 @@ def ixfm(data_to_ixfm,wavelet = 'db4',mode='per'):
     IXFMdata = pywt.waverec2(data_to_ixfm,wavelet,mode)
     return IXFMdata
 
+def wt(data_to_wt, wavelet='db4', mode='per', dims=None, dimOpt=None, dimLenOpt=None):
+     return wvlt2mat(xfm(data_to_wt, wavelet, mode), dims, dimOpt, dimLenOpt)
+
+def iwt(data_to_iwt, wavelet='db4', mode='per', dims=None, dimOpt=None, dimLenOpt=None):
+    return ixfm(mat2wvlt(data_to_iwt, dims, dimOpt, dimLenOpt), wavelet, mode)
+    
 def TV(im, N, strtag, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,None]):
     
     '''
@@ -52,7 +57,7 @@ def TV(im, N, strtag, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,N
     
     #import pdb; pdb.set_trace()
     res = np.zeros(np.hstack([len(strtag), im.shape]))
-    im = np.squeeze(im)
+    #im = np.squeeze(im)
     inds = dirInfo[3]
     cnt = 0
     for i in xrange(len(strtag)):
@@ -101,44 +106,6 @@ def laplacianUnwrap(P,N,res):
     P = np.angle(ifft2c(fP,ph_ones))
     return P
     
-def toMatrix(x):
-    ''' Go from [cAn, (cHn, cVn, cDn), ..., (cH1, cV1, cD1)] to a 2D image'''
-    ax = []
-    for i in xrange(len(x)):
-        ax.append(x[i][0].shape[0])
-        
-    N = sum(ax)
-    res = np.zeros([N,N])
-            
-    res[0:ax[0],0:ax[0]] = x[0]
-    
-    for i in xrange(1,len(ax)):
-        # Now we need to push the correct cH, cV and cD to the right spots
-        #
-        res[0:sum(ax[0:i]),sum(ax[0:i]):sum(ax[0:i+1])] = x[i][0] # cH
-        res[sum(ax[0:i]):sum(ax[0:i+1]),0:sum(ax[0:i])] = x[i][1] # cV
-        res[sum(ax[0:i]):sum(ax[0:i+1]),sum(ax[0:i]):sum(ax[0:i+1])] = x[i][2] # cD
-    
-    return res, ax
-        
-
-def fromMatrix(res,ax):
-    
-    ''' Go from a 2D image to [cAn, (cHn, cVn, cDn), ..., (cH1, cV1, cD1)]'''
-    
-    
-    x = []
-    
-    x.append(res[0:ax[0],0:ax[0]])
-    
-    for i in xrange(1,len(ax)):
-        x.append([])
-        x[i].append(res[0:sum(ax[0:i]),sum(ax[0:i]):sum(ax[0:i+1])]) # cH
-        x[i].append(res[sum(ax[0:i]):sum(ax[0:i+1]),0:sum(ax[0:i])]) # cV
-        x[i].append(res[sum(ax[0:i]):sum(ax[0:i+1]),sum(ax[0:i]):sum(ax[0:i+1])]) # cD
-    
-    return x
-    
 #def iDx(data,shp):
    #res = data[np.hstack([0,range(shp[0]-1)]),:] - data
    #res[0,:] = -data[0,:]
@@ -169,8 +136,8 @@ def fromMatrix(res,ax):
    
    #if len(shp) == 4:
        #res = res + iDz(data[2,:,:,:],shp[1:])
-   
    #return res
+   
 def fermifilt(rawdata,cutoff=0.98,transwidth=0.06):
     data_shape = N.shape(rawdata)
     nro = data_shape[-1]
@@ -186,12 +153,9 @@ def fermifilt(rawdata,cutoff=0.98,transwidth=0.06):
             rawdata[j,:,:]=(rawdata[j,:,:]*filt).astype(N.complex)
         else:
             rawdata[...,j,:,:]=(rawdata[...,j,:,:]*filt).astype(N.complex)
-        #if len(data_shape)==4:
-        #    for k in range(data_shape[0]):
-        #        rawdata[k,j,:,:] = (rawdata[k,j,:,:]*filt).astype(N.complex)
-        #elif len(data_shape)==3:
-        #    rawdata[j,:,:] = (rawdata[j,:,:]*filt).astype(N.complex)
     return rawdata
+    
+# ----------- Rearrange Functions ----------- #
     
 def zpad(orig_data,res_sz):
     res_sz = np.array(res_sz)
@@ -199,3 +163,56 @@ def zpad(orig_data,res_sz):
     padval = np.ceil((res_sz-orig_sz)/2)
     res = np.pad(orig_data,([int(padval[0]),int(padval[0])],[int(padval[1]),int(padval[1])]),mode='constant')
     return res
+
+def wvlt2mat(wvlt, dims=None, dimOpt=None, dimLenOpt= None):
+    if dims is None:
+        dims = np.zeros(len(wvlt))
+        for i in range(len(wvlt)):
+            if i == 0:
+                dims[i] = wvlt[i].shape[0]
+            else:
+                dims[i] =  wvlt[i][0].shape[0]
+    if dims[0] != 0:
+        dims = np.hstack([0, dims]).astype(int)
+    
+    if dimOpt is None:
+        dimOpt = np.zeros(len(wvlt))
+        dimOpt[0] = wvlt[0].shape[0]
+        for i in range(len(wvlt)):
+            dimOpt[i] = np.sum(dimOpt)
+    if dimOpt[0] != 0:
+        dimOpt = np.hstack([0, dimOpt]).astype(int)
+    
+    if dimLenOpt is None:
+        dimLenOpt = np.zeros(len(dimOpt))
+        for i in range(len(dimOpt)):
+            dimLenOpt[i] = np.sum(dimOpt[0:i+1])
+    dimLenOpt = dimLenOpt.astype(int)
+    
+    sz = np.sum(dimOpt,dtype=int)
+    mat = np.zeros([sz, sz])
+    
+    for i in range(1,len(dims)):
+        if i==1: 
+            mat[0:dims[i],0:dims[i]] = wvlt[i-1]
+        else: # Here we have to do the other parts, as they are split in three
+            mat[0:dims[i],dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i]] = wvlt[i-1][0] # to the right
+            mat[dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i],0:dims[i]] = wvlt[i-1][1] # below
+            mat[dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i],dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i]] = wvlt[i-1][2] # diagonal
+    
+    return mat, dims, dimOpt, dimLenOpt
+        
+def mat2wvlt(mat, dims, dimOpt, dimLenOpt):
+    wvlt = [[] for i in range(len(dims)-1)]
+    for i in range(1,len(wvlt)):
+        wvlt[i] = [[] for kk in range(3)]
+    for i in range(1,len(dims)):
+        if i==1: 
+            wvlt[i-1] = mat[0:dims[i],0:dims[i]]
+        else:
+            wvlt[i-1][0] = mat[0:dims[i],dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i]]
+            wvlt[i-1][1] =  mat[dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i],0:dims[i]]
+            wvlt[i-1][2] =  mat[dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i],dimLenOpt[i-1]:dimLenOpt[i-1]+dims[i]]
+            
+    return wvlt
+
