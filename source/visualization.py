@@ -23,7 +23,7 @@ def closefac(n):
     
     return testNum, int(n/testNum)
     
-def figSubplots(data,dims=None,clim=(0,1),titles=None,figsize=(8,6)):
+def figSubplots(data,dims=None,clims=None,titles=None,figsize=(8,6),colorbar=True):
     if isinstance(data,tuple) or isinstance(data,list):
         datahold = np.zeros(np.hstack([len(data),data[0].shape]))
         for i in range(len(data)):
@@ -33,12 +33,52 @@ def figSubplots(data,dims=None,clim=(0,1),titles=None,figsize=(8,6)):
     if not dims:
         dims = np.array(closefac(data.shape[0]))
     
+    if clims is not None:
+        if len(clims) == 2:
+            climHold = []
+            for i in range(len(data)):
+                climHold.append(clims)
+            clims = climHold
+        elif len(clims) != len(data):
+            raise TypeError('Number of limits and datasets don''t match')
+    
     fig = plt.figure(figsize=figsize)
+    data = np.squeeze(data)
     for i in range(data.shape[0]):
         #import pdb; pdb.set_trace()
         ax = fig.add_subplot(dims[0],dims[1],i+1)
-        plt.imshow(data[i,:,:],clim=clim)
+        if clims:
+            plt.imshow(data[i,:,:],clim=clims[i])
+        else:
+            plt.imshow(data[i,:,:],clim=clims)
         if titles:
             plt.title(titles[i])
+        if colorbar:
+            plt.colorbar()
         
+def imDiff(ims):
+    imdiff=[]
+    clims=[]
+    cnt=0
+    for i in range(len(ims)):
+        for j in range(len(ims)):
+            if i<j:
+                imdiff.append(abs(ims[i]-ims[j]))
+                clims.append((np.min(imdiff[cnt]),np.max(imdiff[cnt])))
+                cnt+=1
+    return imdiff, clims
     
+    
+
+
+def imDiffPerc(ims):
+    imdiff=[]
+    clims=[]
+    cnt=0
+    for i in range(len(ims)):
+        for j in range(len(ims)):
+            if i<j:
+                imdiff.append(abs(ims[i]-ims[j])/(np.max(np.squeeze(np.stack([ims[i],ims[j]],axis=0)),axis=0)))
+                clims.append((np.min(imdiff[cnt]),np.max(imdiff[cnt])))
+                cnt+=1
+    return imdiff, clims
