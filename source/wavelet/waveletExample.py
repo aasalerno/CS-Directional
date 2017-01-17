@@ -75,7 +75,8 @@ im_scan = np.zeros(N,complex)
 for i in range(N[0]):
     data[i,:,:] = np.fft.ifftshift(k[i,:,:]) * tf.fft2c(im[i,:,:], ph=ph_ones)
 
-    # IMAGE from the "scanner data"
+    # IMAGE from the "scanner data"
+
     im_scan_wph = tf.ifft2c(data[i,:,:], ph=ph_ones)
     ph_scan[i,:,:] = tf.matlab_style_gauss2D(im_scan_wph,shape=(5,5))
     ph_scan[i,:,:] = np.exp(1j*ph_scan[i,:,:])
@@ -110,8 +111,9 @@ minval = np.min(abs(im))
 maxval = np.max(abs(im))
 data = np.ascontiguousarray(data)
 
-imdcs = [im_dc,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
-mets = ['Density Corrected','Zeros','Ones','Random']
+imdcs = [im_dc]
+#,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
+mets = ['Density Corrected']#,'Zeros','Ones','Random']
 wdcs = []
 for i in range(len(imdcs)):
     wdcs.append(tf.wt(imdcs[i][0],wavelet,mode,dims,dimOpt,dimLenOpt)[0].reshape(N))
@@ -131,10 +133,11 @@ for kk in range(len(wdcs)):
             print('TV and XFM values too high -- no solution found. Dropping...')
         else:
             w_dc = w_result['x']
+            ims.append(w_dc)
             
-    w_res = w_dc.reshape(N)
-    im_res = np.zeros(N_im)
-    for i in xrange(N[0]):
-        im_res[i,:,:] = tf.iwt(w_res[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)
-    ims.append(im_res)
+    #w_res = w_dc.reshape(N)
+    #im_res = np.zeros(N_im)
+    #for i in xrange(N[0]):
+        #im_res[i,:,:] = tf.iwt(w_res[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)
+    #ims.append(im_res)
     

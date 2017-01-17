@@ -47,9 +47,9 @@ def objectiveFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, 
     x.shape = (x.size,) # Not the most efficient way to do this, but we need the shape to reset.
     data.shape = (data.size,)
     #output
-    #print('obj: %.2f' % abs(obj))
-    #print('tv: %.2f' % abs(lam1*tv))
-    #print('xfm: %.2f' % abs(lam2*xfm))
+    print('obj: %.2f' % abs(obj))
+    print('tv: %.2f' % abs(lam1*tv))
+    print('xfm: %.2f' % abs(lam2*xfm))
     return abs(obj + lam1*tv + lam2*xfm)
 
 
