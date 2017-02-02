@@ -63,7 +63,9 @@ def genPDF(img_sz,
         radius = 0,
         cyl = [0],
         disp = 0,
-        style='add'):
+        style='mult',
+        pft=False,
+        ext=0.5):
     """
     Generates a Probability Density Function for Pseudo-undersampling (and potentially for use with the scanner after the fact. 
     
@@ -113,6 +115,13 @@ def genPDF(img_sz,
     #import pdb; pdb.set_trace()
     if cir:
         PCTG = int(np.floor(pctg*sx*sy*np.pi/4.))
+        if pft:
+            h = 1+ext
+            r_ch = np.sqrt(1-(h*radius)**2)
+            A_T = h*r_ch
+            theta = np.arccos(ext)
+            A_p0 = 1-(2*theta-A_T)/np.pi
+            PCTG = int(PCTG*A_p0)
     else:
         PCTG = int(np.floor(pctg*sx*sy))
 
@@ -136,7 +145,7 @@ def genPDF(img_sz,
     pdf[idx] = 1
 
     if len(idx[0]) > PCTG/3:
-        raise NameError('Radius is too big! Rerun with smaller central radius.')
+        raise ValueError('Radius is too big! Rerun with smaller central radius.')
 
     # Bisect the data to get the proper PDF values to allow for the optimal sampling pattern generation
     if p==0:
@@ -145,6 +154,7 @@ def genPDF(img_sz,
         pdf[idx] = 1
     else:
         if style=='mult':
+            pdf = 1/r**p
             #maxPx = sy/2
             #maxPy = sx/2
             alpha = 10
@@ -165,6 +175,10 @@ def genPDF(img_sz,
                     r = np.sqrt(x**2 + y**2)
                     outcyl = np.where(r > 1)
                     pdf[outcyl] = 0
+                if pft:
+                    pdf_pftLoc = pdf*(r >= (1+ext)*radius)*(r<=1)
+                    loc = np.where(pdf_pftLoc[(img_sz[1]/2).astype(int),:]==0)[0][1]
+                    pdf[:,0:loc] = 0
                 val = PCTG - len(idx[0])
                 sumval = np.sum(pdf) - len(idx[0])
                 alpha = val/sumval
@@ -195,7 +209,7 @@ def genPDF(img_sz,
     pdf = ndimage.filters.gaussian_filter(pdf,3)
     
     if zpad_mat:
-        if (img_sz[-2] > img_sz_hold[-2]) or (img_sz[-1] > img_sz_hold[11]):
+        if (img_sz[-2] > img_sz_hold[-2]) or (img_sz[-1] > img_sz_hold[-1]):
             pdf = zpad(pdf,img_sz)
         else:
             xdiff = int((img_sz[-2] - img_sz_hold[-2])/2)

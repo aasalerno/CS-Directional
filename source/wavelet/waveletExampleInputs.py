@@ -11,7 +11,7 @@ syspath.append("/home/asalerno/Documents/pyDirectionCompSense/source/wavelet")
 os.chdir('/home/asalerno/Documents/pyDirectionCompSense/')
 import transforms as tf
 import scipy.ndimage.filters
-import grads
+import gradWavelet as grads
 import sampling as samp
 import direction as d
 import optimize as opt
@@ -31,12 +31,14 @@ def runCSAlgorithm(fromfid=False,
                    sliceChoice=150,
                    strtag = ['','spatial', 'spatial'],
                    xtol = [1e-2, 1e-3, 5e-4, 5e-4],
-                   TV = [0.01,0.005, 0.002, 0.001],
+                   TV = [0.01, 0.005, 0.002, 0.001],
                    XFM = [0.01,.005, 0.002, 0.001],
                    dirWeight=0,
                    pctg=0.25,
                    radius=0.2,
                    P=2,
+                   pft=False,
+                   ext=0.5,
                    wavelet='db4',
                    mode='per',
                    method='CG',
@@ -45,6 +47,16 @@ def runCSAlgorithm(fromfid=False,
                    alpha_0=0.6,
                    c=0.6,
                    a=10.0,
+                   kern = 
+                   np.array([[[ 0.,  0.,  0.], 
+                   [ 0.,  0.,  0.], 
+                   [ 0.,  0.,  0.]],                
+                  [[ 0.,  0.,  0.],
+                  [ 0., -1.,  0.],
+                  [ 0.,  1.,  0.]],
+                  [[ 0.,  0.,  0.],
+                  [ 0., -1.,  1.],
+                  [ 0.,  0.,  0.]]]),
                    dirFile = None,
                    nmins = None,
                    dirs = None,
@@ -55,8 +67,9 @@ def runCSAlgorithm(fromfid=False,
                    saveImsPng=False,
                    saveImsPngFile=None,
                    saveImDiffPng=False,
-                   saveImDiffPngFile=None):
-    
+                   saveImDiffPngFile=None,
+                   disp=False):
+    ##import pdb; pdb.set_trace()
     if fromfid==True:
         inputdirectory=filename[0]
         petable=filename[1]
@@ -68,7 +81,9 @@ def runCSAlgorithm(fromfid=False,
         
     N = np.array(im.shape)  # image Size
 
-    pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=np.hstack([1, N[-2:]]), style='mult')
+    pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=np.hstack([1, N[-2:]]), style='mult', pft=pft, ext=ext)
+    if pft:
+        print('Partial Fourier sampling method used')
     k = samp.genSampling(pdf, 50, 2)[0].astype(int)
     if len(N) == 2:
         N = np.hstack([1, N])
@@ -80,10 +95,10 @@ def runCSAlgorithm(fromfid=False,
     ph_ones = np.ones(N[-2:], complex)
     ph_scan = np.zeros(N, complex)
     data = np.zeros(N,complex)
-    im_dc = np.zeros(N,complex)
     im_scan = np.zeros(N,complex)
     for i in range(N[0]):
-        data[i,:,:] = np.fft.ifftshift(k[i,:,:]) * tf.fft2c(im[i,:,:], ph=ph_ones)
+        k[i,:,:] = np.fft.fftshift(k[i,:,:])
+        data[i,:,:] = k[i,:,:]*tf.fft2c(im[i,:,:], ph=ph_ones)
 
         # IMAGE from the "scanner data"
         im_scan_wph = tf.ifft2c(data[i,:,:], ph=ph_ones)
@@ -91,15 +106,37 @@ def runCSAlgorithm(fromfid=False,
         ph_scan[i,:,:] = np.exp(1j*ph_scan[i,:,:])
         im_scan[i,:,:] = tf.ifft2c(data[i,:,:], ph=ph_scan[i,:,:])
         #im_lr = samp.loRes(im,pctg)
+    
+    # ------------------------------------------------------------------ #
+    # A quick way to look at the PSF of the sampling pattern that we use #
+    delta = np.zeros(N[-2:])
+    delta[int(N[-2]/2),int(N[-1]/2)] = 1
+    psf = tf.ifft2c(tf.fft2c(delta,ph_ones)*k,ph_ones)
+    # ------------------------------------------------------------------ #
 
-    pdfDiv = pdf
+
+    ## ------------------------------------------------------------------ #
+    ## -- Currently broken - Need to figure out what's happening here. -- #
+    ## ------------------------------------------------------------------ #
+    #if pft:
+        #for i in xrange(N[0]):
+            #dataHold = np.fft.fftshift(data[i,:,:])
+            #kHold = np.fft.fftshift(k[i,:,:])
+            #loc = 98
+            #for ix in xrange(N[-2]):
+                #for iy in xrange(loc,N[-1]):
+                    #dataHold[-ix,-iy] = dataHold[ix,iy].conj()
+                    #kHold[-ix,-iy] = kHold[ix,iy]
+    ## ------------------------------------------------------------------ #
+    
+    pdfDiv = pdf.copy()
     pdfZeros = np.where(pdf==0)
     pdfDiv[pdfZeros] = 1
-    im_scan_imag = im_scan.imag
-    im_scan = im_scan.real
+    #im_scan_imag = im_scan.imag
+    #im_scan = im_scan.real
 
-    N_im = N
-    hld, dims, dimOpt, dimLenOpt = tf.wt(im_scan[0],wavelet,mode)
+    N_im = N.copy()
+    hld, dims, dimOpt, dimLenOpt = tf.wt(im_scan[0].real,wavelet,mode)
     N = np.hstack([N_im[0], hld.shape])
 
     w_scan = np.zeros(N)
@@ -107,8 +144,8 @@ def runCSAlgorithm(fromfid=False,
     im_dc = np.zeros(N_im)
     w_dc = np.zeros(N)
 
-    for i in range(N[0]):
-        w_scan[i,:,:] = tf.wt(im_scan[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0]
+    for i in xrange(N[0]):
+        w_scan[i,:,:] = tf.wt(im_scan.real[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0]
         w_full[i,:,:] = tf.wt(abs(im[i,:,:]),wavelet,mode,dims,dimOpt,dimLenOpt)[0]
 
         im_dc[i,:,:] = tf.ifft2c(data[i,:,:] / np.fft.ifftshift(pdfDiv), ph=ph_scan[i,:,:]).real.copy()
@@ -121,6 +158,7 @@ def runCSAlgorithm(fromfid=False,
     data = np.ascontiguousarray(data)
 
     imdcs = [im_dc,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
+    imdcs[-1] = imdcs[-1]/np.max(abs(imdcs[-1]))
     mets = ['Density Corrected','Zeros','Ones','Random']
     wdcs = []
     for i in range(len(imdcs)):
@@ -132,7 +170,7 @@ def runCSAlgorithm(fromfid=False,
         w_dc = wdcs[kk]
         print(mets[kk])
         for i in range(len(TV)):
-            args = (N, N_im, dims, dimOpt, dimLenOpt, TV[i], XFM[i], data, k, strtag, ph_scan, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
+            args = (N, N_im, dims, dimOpt, dimLenOpt, TV[i], XFM[i], data, k, strtag, ph_scan, kern, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
             w_result = opt.minimize(f, w_dc, args=args, method=method, jac=df, 
                                         options={'maxiter': ItnLim, 'lineSearchItnLim': lineSearchItnLim, 'gtol': 0.01, 'disp': 1, 'alpha_0': alpha_0, 'c': c, 'xtol': xtol[i], 'TVWeight': TV[i], 'XFMWeight': XFM[i], 'N': N})
             if np.any(np.isnan(w_result['x'])):
@@ -156,17 +194,21 @@ def runCSAlgorithm(fromfid=False,
     
     if saveImsPng:
         vis.figSubplots(ims,titles=mets,clims=(minval,maxval),colorbar=True)
-        if saveImsPngFile is None:
-            saveFig.save('./holdSave_ims_' + str(int(pctg*100)) + 'p_all_SP')
-        else:
-            saveFig.save(saveImsPngFile)
+        if not disp:
+            if saveImsPngFile is None:
+                saveFig.save('./holdSave_ims_' + str(int(pctg*100)) + 'p_all_SP')
+            else:
+                saveFig.save(saveImsPngFile)
     
     if saveImDiffPng:
         imdiffs, clims = vis.imDiff(ims)
         diffMets = ['DC-Zeros','DC-Ones','DC-Random','Zeros-Ones','Zeros-Random','Ones-Random']
         vis.figSubplots(imdiffs,titles=diffMets,clims=clims,colorbar=True)
-        if saveImDiffPngFile is None:
-            saveFig.save('./holdSave_im_diffs_' + str(int(pctg*100)) + 'p_all_SP')
-        else:
-            saveFig.save(saveImDiffPngFile)
-            
+        if not disp:
+            if saveImDiffPngFile is None:
+                saveFig.save('./holdSave_im_diffs_' + str(int(pctg*100)) + 'p_all_SP')
+            else:
+                saveFig.save(saveImDiffPngFile)
+    
+    if disp:
+        plt.show()

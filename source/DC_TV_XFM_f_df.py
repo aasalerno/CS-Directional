@@ -33,7 +33,7 @@ def objectiveFunction(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0, dirs=N
     obj = np.sum(objectiveFunctionDataCons(x,N,ph,data,k))
     
     if lam1 > 1e-6:
-        tv = np.sum(objectiveFunctionTV(x,N,strtag,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a))
+        tv = np.sum(objectiveFunctionTV(x,N,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a))
     
     if lam2 > 1e-6:
         xfm = objectiveFunctionXFM(x,N,wavelet=wavelet,mode=mode,a=a)
@@ -59,7 +59,7 @@ def derivativeFunction(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0.1, dir
     
     gDataCons = grads.gDataCons(x,N,ph,data,k) # Calculate the obj function
     if lam1 > 1e-6:
-        gTV = grads.gTV(x,N,strtag,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a) # Calculate the TV gradient
+        gTV = grads.gTV(x,N,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a) # Calculate the TV gradient
     if lam2 > 1e-6:
         gXFM = grads.gXFM(x,N,wavelet=wavelet,mode=mode,a=a)
     x.shape = (x.size,)
@@ -95,7 +95,7 @@ def derivativeFunction(x, N, lam1, lam2, data, k, strtag, ph, dirWeight=0.1, dir
 # ----------------------------------------------------- #
 
 def objectiveFunctionDataCons(x, N, ph, data, k):
-    obj_data = np.fft.fftshift(k)*(data - tf.fft2c(x,ph))
+    obj_data = k*(data - tf.fft2c(x,ph))
     return obj_data*obj_data.conj() #L2 Norm
 
 

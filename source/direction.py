@@ -128,7 +128,7 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
     nmins = inds.shape[1]
     dirloc = strtag.index("diff")
     x0 = np.rollaxis(x0,dirloc)
-    Gdiffsq = np.zeros(N,dtype='complex')
+    Gdiffsq = np.zeros(N)
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
@@ -145,7 +145,8 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
         
         for i in xrange(nrow):
             for j in xrange(ncol):
-                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:]),Irq[:,i,j].reshape(nmins,1))[0,0]
+                #Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:]),Irq[:,i,j].reshape(nmins,1))[0,0]
+                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j],M[q,:,:]),Irq[:,i,j])
     
     # This line puts the data back into the orientation that it was in before
     Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)

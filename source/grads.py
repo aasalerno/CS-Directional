@@ -7,6 +7,7 @@ from __future__ import division
 import numpy as np
 import transforms as tf
 import matplotlib.pyplot as plt
+from scipy.ndimage.filters import correlate
 
 
 def gXFM(x, N, wavelet='db1', mode='per', p=1, a=10):
@@ -94,10 +95,41 @@ def gDataCons(x, N, ph, data_from_scanner, samp_mask):
     for kk in range(N[0]):
         x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:]); # Issue, feeding in 3D data to a 2D fft alg...
     
-        grad[kk,:,:] = -2*tf.ifft2c(np.fft.fftshift(samp_mask[kk,:,:])*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:]).real; # -1* & ,real
+        grad[kk,:,:] = -2*tf.ifft2c(samp_mask[kk,:,:]*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:]).real; # -1* & ,real
     #import pdb; pdb.set_trace()
     return grad
 
+    
+#def gTV(x, N, strtag, kern, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,None,None], a=10):
+
+    #if nmins:
+        #M = dirInfo[0]
+        #dIM = dirInfo[1]
+        #Ause = dirInfo[2]
+        #inds = dirInfo[3]
+    #else:
+        #M = None
+        #dIM = None
+        #Ause = None
+        #inds = None
+    
+    #if len(x.shape) == 2:
+        #N = np.hstack([1,N])
+        
+    #x0 = x.reshape(N)
+    #grad = np.zeros(np.hstack([N[0], len(strtag), N[1:]]),dtype=float)
+    #Nkern = np.hstack([1,kern.shape[-2:]])
+    
+    #TV_data = tf.TV(x0,N,strtag,kern,dirWeight,dirs,nmins,dirInfo)
+    #for i in xrange(len(strtag)):
+        #if strtag[i] == 'spatial':
+            #kernHld = np.flipud(np.fliplr(kern[i])).reshape(Nkern)
+            #grad[:,i,:,:] = correlate(np.tanh(a*TV_data[i]),kernHld,mode='wrap')
+    
+    #grad = np.squeeze(np.sum(grad,axis=1))
+    #return grad
+    
+    
 def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,None,None], a=10):
     #import pdb; pdb.set_trace()
     if nmins:
@@ -117,7 +149,7 @@ def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,None,Non
     x0 = x.reshape(N)
     grad = np.zeros(np.hstack([N[0], len(strtag), N[1:]]))
     
-    TV_data = tf.TV(x0,N,strtag,dirWeight,dirs,nmins,dirInfo)
+    TV_data = tf.TV_old(x0,N,strtag,dirWeight,dirs,nmins,dirInfo)
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
             TV_dataRoll = np.roll(TV_data[i,:,:],1,axis=i)
@@ -137,5 +169,5 @@ def gTV(x, N, strtag, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,None,Non
             grad[:,i,:,:] *= dirWeight
     
     #import pdb; pdb.set_trace()
-    grad = np.sum(grad,axis=1)
+    #grad = np.sum(grad,axis=1)
     return grad

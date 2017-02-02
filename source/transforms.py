@@ -12,6 +12,7 @@ import numpy as np
 import numpy.fft as fft
 import pywt
 import direction as d
+from scipy.ndimage.filters import correlate
 
 EPS = np.finfo(float).eps
 
@@ -43,8 +44,26 @@ def wtn(data_to_wt, wavelet='db4', mode='per', dims=None, dimOpt=None, dimLenOpt
 
 def iwtn(data_to_iwt, wavelet='db4', mode='per', dims=None, dimOpt=None, dimLenOpt=None):
     return pywt.waverecn(mat2wvlt(data_to_iwt, dims, dimOpt, dimLenOpt), wavelet, mode)
+
     
-def TV(im, N, strtag, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,None]):
+# -------------------------------------------- #
+# ---------------- NEW TV -------------------- #
+# -------------------------------------------- #
+
+
+def TV(im, N, strtag, kern, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,None]):
+    res = np.zeros(np.hstack([len(strtag), im.shape]))
+    inds = dirInfo[3]
+    Nkern = np.hstack([1,kern.shape[-2:]])
+    for i in xrange(len(strtag)):
+        if strtag[i] == 'spatial':
+            res[i] = correlate(im,kern[i].reshape(Nkern),mode='wrap')
+        elif strtag[i] == 'diff':
+            res[i] = dirWeight*d.least_Squares_Fitting(im,N,strtag,dirs,inds,dirInfo[0]).real
+    return res.reshape(np.hstack([len(strtag), N]))
+    
+
+def TV_old(im, N, strtag, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,None]):
     
     '''
     A finite differences sampling operation done on datasets to spply some 
@@ -205,7 +224,7 @@ def wvlt2mat(wvlt, dims=None, dimOpt=None, dimLenOpt= None):
     dimLenOpt = dimLenOpt.astype(int)
     
     sz = np.sum(dimOpt,axis=0,dtype=int)
-    mat = np.zeros(sz,wvlt[0].dtype)
+    mat = np.zeros(sz)
     
     if dims.shape[-1]==2:
         for i in range(1,dims.shape[0]):
@@ -259,3 +278,12 @@ def mat2wvlt(mat, dims, dimOpt, dimLenOpt):
         
     return wvlt
 
+def flip(m, axis):
+    if not hasattr(m, 'ndim'):
+        m = asarray(m)
+    indexer = [slice(None)] * m.ndim
+    try:
+        indexer[axis] = slice(None, None, -1)
+    except IndexError:
+        raise ValueError("axis=%i is invalid for the %i-dimensional input array" % (axis, m.ndim))
+    return m[tuple(indexer)]
