@@ -158,8 +158,9 @@ def runCSAlgorithm(fromfid=False,
     data = np.ascontiguousarray(data)
 
     imdcs = [im_dc,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
+    imdcs[-1] = imdcs[-1] - np.min(imdcs[-1])
     imdcs[-1] = imdcs[-1]/np.max(abs(imdcs[-1]))
-    mets = ['Density Corrected','Zeros','Ones','Random']
+    mets = ['Density Corrected','Zeros','1/2''s','Gaussian Random Shift (0,1)']
     wdcs = []
     for i in range(len(imdcs)):
         wdcs.append(tf.wt(imdcs[i][0],wavelet,mode,dims,dimOpt,dimLenOpt)[0].reshape(N))

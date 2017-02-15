@@ -16,12 +16,32 @@ from scipy.ndimage.filters import correlate
 
 EPS = np.finfo(float).eps
 
-def fft2c(data_to_fft,ph,axes=(-2,-1)):
-    FFTdata = 1/np.sqrt(data_to_fft.size)*fft.fft2(data_to_fft*ph,axes=axes);
+def fft2c(im_to_fft, ph, sz=None, axes=(-2,-1)):
+    if sz is None:
+        FFTdata = 1/np.sqrt(im_to_fft.size)*fft.fft2(im_to_fft*ph,axes=axes);
+    else:
+        FFTdata = (np.sqrt(sz)/im_to_fft.size)*fft.fft2(im_to_fft*ph,axes=axes)
     return FFTdata
 
-def ifft2c(data_to_ifft,ph,axes=(-2,-1)):
-    IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*np.conj(ph);
+def ifft2c(data_to_ifft, ph, sz=None, axes=(-2,-1)):
+    if sz is None:
+        IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifft2(data_to_ifft,axes=axes)*np.conj(ph);
+    else:
+        IFFTdata = (data_to_ifft.size/np.sqrt(sz))*fft.ifft2(data_to_ifft,axes=axes)*np.conj(ph);
+    return IFFTdata
+    
+def fftnc(im_to_fft, ph, sz=None, axes=(-2,-1)):
+    if sz is None:
+        FFTdata = 1/np.sqrt(im_to_fft.size)*fft.fftn(im_to_fft*ph,axes=axes);
+    else:
+        FFTdata = (np.sqrt(sz)/im_to_fft.size)*fft.fftn(im_to_fft*ph,axes=axes)
+    return FFTdata
+
+def ifftnc(data_to_ifft, ph, sz=None, axes=(-2,-1)):
+    if sz is None:
+        IFFTdata = np.sqrt(data_to_ifft.size)*fft.ifftn(data_to_ifft,axes=axes)*np.conj(ph);
+    else:
+        IFFTdata = (data_to_ifft.size/np.sqrt(sz))*fft.ifftn(data_to_ifft,axes=axes)*np.conj(ph);
     return IFFTdata
 
 def xfm(data_to_xfm,wavelet = 'db4',mode='per'):
@@ -54,7 +74,7 @@ def iwtn(data_to_iwt, wavelet='db4', mode='per', dims=None, dimOpt=None, dimLenO
 def TV(im, N, strtag, kern, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,None,None]):
     res = np.zeros(np.hstack([len(strtag), im.shape]))
     inds = dirInfo[3]
-    Nkern = np.hstack([1,kern.shape[-2:]])
+    Nkern = np.hstack(kern.shape[1:])
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
             res[i] = correlate(im,kern[i].reshape(Nkern),mode='wrap')

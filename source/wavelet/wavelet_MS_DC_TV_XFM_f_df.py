@@ -8,7 +8,7 @@ plt.rcParams['image.interpolation'] = 'none'
 import os.path
 import transforms as tf
 import scipy.ndimage.filters
-import gradWavelet as grads
+import gradWaveletMS as grads
 import sampling as samp
 import direction as d
 import optimize as opt
@@ -18,13 +18,13 @@ EPS = np.finfo(float).eps
 # ------- MAJOR FUNCTIONS FOR USE IN MAIN CODE -------- #
 # ----------------------------------------------------- #
 
-def objectiveFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, strtag, ph, kern,
-                      dirWeight=0, dirs=None, dirInfo=[None,None,None,None], nmins=0, wavelet='db4', mode="per", a=10.):
+def objectiveFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, strtag, ph,     
+                      kern, dirWeight=0, dirs=None, dirInfo=[None,None,None,None], nmins=0, wavelet='db4', mode="per", a=10.):
     '''
     This is the optimization function that we're trying to optimize. We are optimizing x here, and testing it within the funcitons that we want, as called by the functions that we've created
     '''
     #dirInfo[0] is M
-    #import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
     tv = 0
     xfm = 0
     data.shape = N_im
@@ -36,7 +36,7 @@ def objectiveFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, 
     else:
         x0 = tf.iwt(x,wavelet,mode,dims,dimOpt,dimLenOpt)
     
-    obj = np.sum(objectiveFunctionDataCons(x0,N_im,ph,data,k))
+    obj = np.sum(objectiveFunctionDataCons(x0,N_im,ph,data,k,sz))
     
     if lam1 > 1e-6:
         tv = np.sum(objectiveFunctionTV(x0,N_im,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a))
@@ -53,7 +53,7 @@ def objectiveFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, 
     return abs(obj + lam1*tv + lam2*xfm)
 
 
-def derivativeFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, strtag, ph, 
+def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data, k, strtag, ph, 
                        kern, dirWeight=0.1, dirs=None, dirInfo=[None,None,None,None], nmins=0, wavelet="db4", mode="per", a=10.):
     '''
     This is the function that we're going to be optimizing via the scipy optimization pack. This is the function that represents Compressed Sensing
@@ -70,11 +70,20 @@ def derivativeFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k,
     else:
         x0 = tf.iwt(x,wavelet,mode,dims,dimOpt,dimLenOpt)
     
-    gDataCons = tf.wt(grads.gDataCons(x0,N_im,ph,data,k),wavelet,mode,dims,dimOpt,dimLenOpt)[0]
+    gdc = grads.gDataCons(x0,N_im,ph,data,k,sz)
     if lam1 > 1e-6:
-        gTV = tf.wt(grads.gTV(x0,N_im,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a),wavelet,mode,dims,dimOpt,dimLenOpt)[0] # Calculate the TV gradient
-    if lam2 > 1e-6:
-        gXFM = grads.gXFM(x,a=a)
+        gtv = grads.gTV(x0,N_im,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a)
+    
+    gDataCons = np.zeros(N)
+    gTV = np.zeros(N)
+    gXFM = np.zeros(N)
+    
+    for i in xrange(N[0]):
+        gDataCons[i,:,:] = tf.wt(gdc[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0]
+        if lam1 > 1e-6:
+            gTV[i,:,:] = tf.wt(gtv[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0] # Calculate the TV gradient
+        if lam2 > 1e-6:
+            gXFM[i,:,:] = grads.gXFM(x[i,:,:],a=a)
     
     x.shape = (x.size,)
     
@@ -90,8 +99,8 @@ def derivativeFunction(x, N, N_im, dims, dimOpt, dimLenOpt, lam1, lam2, data, k,
 # -------- Individual Calculations for clarity -------- #
 # ----------------------------------------------------- #
 
-def objectiveFunctionDataCons(x, N, ph, data, k):
-    obj_data = k*(data - tf.fft2c(x,ph))
+def objectiveFunctionDataCons(x, N, ph, data, k, sz):
+    obj_data = k*(data - tf.fftnc(x,ph,sz=sz/N[0]**2))
     return obj_data*obj_data.conj() #L2 Norm
 
 def objectiveFunctionTV(x, N, strtag, kern, dirWeight=0, dirs=None, nmins=0,

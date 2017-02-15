@@ -47,7 +47,7 @@ def gXFM(x, a=10):
     #import pdb; pdb.set_trace()
     return grad
 
-def gDataCons(x, N, ph, data_from_scanner, samp_mask):
+def gDataCons(x, N, ph, data_from_scanner, samp_mask, sz):
     '''
     Here, we are attempting to get the objective derivative from the
     function. This gradient is how the current data compares to the 
@@ -78,9 +78,9 @@ def gDataCons(x, N, ph, data_from_scanner, samp_mask):
     #samp_mask = samp_mask.reshape(N)
     
     for kk in range(N[0]):
-        x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:]); # Issue, feeding in 3D data to a 2D fft alg...
+        x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:],sz/N[0]**2)
     
-        grad[kk,:,:] = -2*tf.ifft2c(samp_mask[kk,:,:]*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:]).real; # -1* & ,real
+        grad[kk,:,:] = -2*tf.ifft2c(samp_mask[kk,:,:]*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:],sz=sz).real; # -1* & ,real
     #import pdb; pdb.set_trace()
     return grad
 
@@ -103,8 +103,11 @@ def gTV(x, N, strtag, kern, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,No
         
     x0 = x.reshape(N)
     grad = np.zeros(np.hstack([N[0], len(strtag), N[1:]]),dtype=float)
-    Nkern = np.hstack([1,kern.shape[-2:]])
-    
+    if kern.shape == 3:
+        Nkern = np.hstack(1,[kern.shape[1:]])
+    else:
+        Nkern = kern.shape[1:]
+        
     TV_data = tf.TV(x0,N,strtag,kern,dirWeight,dirs,nmins,dirInfo)
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':

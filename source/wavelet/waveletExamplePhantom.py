@@ -19,6 +19,8 @@ import scipy.optimize as spopt
 import wavelet_DC_TV_XFM_f_df as funs
 import read_from_fid as rff
 import saveFig
+from scipy.interpolate import RectBivariateSpline
+from unwrap2d import *
 import visualization as vis
 
 f = funs.objectiveFunction
@@ -48,35 +50,6 @@ kern = np.array([[[ 0.,  0.,  0.],
                   [[ 0.,  0.,  0.],
                   [ 0., -1.,  1.],
                   [ 0.,  0.,  0.]]])
-#kern = np.array([[[ 0.,  0.,  0.],
-                  #[ 0.,  0.,  0.],
-                  #[ 0.,  0.,  0.]],
-                  
-                  #[[ -1.,  0., 1.],
-                  #[ -2., 0.,  2.],
-                  #[ -1.,  0.,  1.]],
-                  
-                  #[[ -1.,  -2.,  -1.],
-                  #[ 0., 0., 0.],
-                  #[ 1.,  2., 1.]]])
-#kern = np.array([[[0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.]],
-                  
-                  #[[ -1., -2., 0.,  2.,  1.],
-                  #[  -4., -8., 0.,  8.,  4.],
-                  #[ -6., -12,  0., 12., 6.],
-                  #[ -4., -8,    0.,  8., 4.],
-                  #[ -1., -2,   0.,  2., 1.]],
-                  
-                  #[[ -1.,  -4., -6, -4,  -1.],
-                  #[-2., -8., -12., -8., -2.],
-                  #[ 0., 0., 0., 0., 0.],
-                  #[2., 8., 12., 8., 2.],
-                  #[ 1.,  4., 6., 4.,  1.]]])
-#kern = kern/np.linalg.norm(kern)
 
 dirFile = None
 nmins = None
@@ -87,26 +60,22 @@ radius = 0.2
 pft=False
 alpha_0 = 0.1
 c = 0.6
-a = 20.0 # value used for the tanh argument instead of sign
+a = 10.0 # value used for the tanh argument instead of sign
 
 pctg = 0.25
 phIter = 0
 sliceChoice = 150
-xtol = [1e-2, 1e-3, 5e-4]
-TV = [0.01, 0.005, 0.001]
-XFM = [0.01, 0.005, 0.001]
-#XFM = [0.02, 0.01, 0.005]
-#TV = [0.01, 0.005, 0.002, 0.001]
-#XFM = [0.01,.005, 0.002, 0.001]
+xtol = [1e-2, 1e-3, 5e-4, 5e-4]
+TV = [0.01, 0.005, 0.002, 0.001]
+XFM = [0.01,.005, 0.002, 0.001]
 radius = 0.2
 
-im = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/P14/data/fullySampledBrain.npy')[sliceChoice,:,:]
-#im = (np.random.randn(294**2)+1.j*np.random.randn(294**2)).reshape([294,294])
+im = np.load('/home/asalerno/Documents/pyDirectionCompSense/phantom/imFull.npy')
 im = im/np.max(abs(im))
 N = np.array(im.shape)  # image Size
 P = 2
 
-pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=np.hstack([1, N[-2:]]), style='mult', pft=pft,ext=0.5)
+pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=[0], style='mult', pft=pft,ext=0.5)
 if pft:
     print('Partial Fourier sampling method used')
 k = samp.genSampling(pdf, 50, 2)[0].astype(int)
@@ -180,12 +149,15 @@ for i in xrange(N[0]):
 
     im_dc[i,:,:] = tf.ifft2c(data[i,:,:] / np.fft.ifftshift(pdfDiv), ph=ph_scan[i,:,:]).real.copy()
     w_dc[i,:,:] = tf.wt(im_dc,wavelet,mode,dims,dimOpt,dimLenOpt)[0]
+    #k[i,:,:] = np.fft.fftshift(k[i,:,:])
 
 w_dc = w_dc.flatten()
 im_sp = im_dc.copy().reshape(N_im)
 minval = np.min(abs(im))
 maxval = np.max(abs(im))
 data = np.ascontiguousarray(data)
+
+
 
 
 imdcs = [im_dc]#,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
@@ -199,6 +171,9 @@ for i in range(len(imdcs)):
 ims = []
 stps = []
 tvStps = []
+im_stp = np.zeros(N_im)
+data_stp = np.zeros(N_im,complex)
+w_stp = np.zeros(N)
 #print('Starting the CS Algorithm')
 for kk in range(len(wdcs)):
     w_dc = wdcs[kk]
@@ -211,18 +186,50 @@ for kk in range(len(wdcs)):
             print('Some nan''s found. Dropping TV and XFM values')
         elif w_result['status'] != 0:
             print('TV and XFM values too high -- no solution found. Dropping...')
-        else:
+            if i == len(TV):
+            print('No solution found on final run. Saving last spot.')
             w_dc = w_result['x']
             stps.append(w_dc)
             tvStps.append(TV[i])
-            
-            
+        else:
+            w_dc = w_result['x']
+            #import pdb; pdb.set_trace()
+            for j in xrange(N[0]):
+                w_stp = w_dc.reshape(N)
+                im_stp[j,:,:] = tf.iwt(w_stp[j,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)
+                if i != len(TV):
+                    # DC Hold
+                    #data_stp[j,:,:] = tf.fft2c(im_stp[j,:,:],ph_scan[j,:,:])
+                    #data_stp[j,:,:] = (1-k[j,:,:])*data_stp[j,:,:] + k[j,:,:]*data[j,:,:]
+                    #im_stp[j,:,:] = tf.ifft2c(data_stp[j,:,:],ph_scan[j,:,:])
+                    # Add noise
+                    nse = 0.05*np.random.randn(im_stp[j,:,:].size).reshape(N_im[-2:])
+                    im_stp[j,:,:] += nse
+                    w_stp[j,:,:] = tf.wt(im_stp[j,:,:].real,wavelet,mode,dims,dimOpt,dimLenOpt)[0]
+                w_dc = w_stp.flatten()
+            stps.append(w_dc)
+            tvStps.append(TV[i])
+        
+                    
+                
     w_res = w_dc.reshape(N)
     im_res = np.zeros(N_im)
     for i in xrange(N[0]):
         im_res[i,:,:] = tf.iwt(w_res[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)
     ims.append(im_res)
     
+    
+
+data_res = tf.fft2c(im_res,ph_scan)
+data_diff = np.fft.fftshift(data_res-data)*k
+plt.imshow(abs(data_diff)[0]); plt.colorbar();
+saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/phantomKernTests/noise_' + str(int(100*pctg)) + '_ksp_diff_abs')
+plt.imshow(data_diff.real[0]); plt.colorbar();
+saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/phantomKernTests/noise_' + str(int(100*pctg)) + '_ksp_diff_real')
+plt.imshow(data_diff.imag[0]); plt.colorbar();
+saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/phantomKernTests/noise_' + str(int(100*pctg)) + '_ksp_diff_imag')
+
+
 im_stps = np.zeros([len(stps), N_im[-2], N_im[-1]])
 gtv = np.zeros([len(stps), N_im[-2], N_im[-1]])
 gxfm = np.zeros([len(stps), N_im[-2], N_im[-1]])
@@ -237,13 +244,10 @@ for i in xrange(len(stps)):
     plt.imshow(im_stps[i])
     plt.colorbar()
     plt.title('Step with Negative Values')
-    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_0_a_' + str(int(a)) + '_negs')
+    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/phantomKernTests/noise_' + str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_0_a_' + str(int(a)) + '_negs')
     vis.figSubplots([im_stps[i],gtv[i],gxfm[i],gdc[i]],titles=['Step','gTV','gXFM','gDC'],clims=[(minval,maxval),(np.min(gtv[i]),np.max(gtv[i])),(np.min(gxfm[i]),np.max(gxfm[i])),(np.min(gdc[i]),np.max(gdc[i]))])
-    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_0_a_' + str(int(a)) + '_grads')
+    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/phantomKernTests/noise_' + str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_0_a_' + str(int(a)) + '_grads')
     plt.imshow(TV[i]*gtv[i] + TV[i]*gxfm[i] + gdc[i])
     plt.colorbar()
     plt.title('Total Gradient')
-    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_a_' + str(int(a)) + '_gradTotal')
-    
-
-    
+    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/phantomKernTests/noise_' + str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_a_' + str(int(a)) + '_gradTotal')

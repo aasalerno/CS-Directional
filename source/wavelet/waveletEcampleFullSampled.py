@@ -48,35 +48,6 @@ kern = np.array([[[ 0.,  0.,  0.],
                   [[ 0.,  0.,  0.],
                   [ 0., -1.,  1.],
                   [ 0.,  0.,  0.]]])
-#kern = np.array([[[ 0.,  0.,  0.],
-                  #[ 0.,  0.,  0.],
-                  #[ 0.,  0.,  0.]],
-                  
-                  #[[ -1.,  0., 1.],
-                  #[ -2., 0.,  2.],
-                  #[ -1.,  0.,  1.]],
-                  
-                  #[[ -1.,  -2.,  -1.],
-                  #[ 0., 0., 0.],
-                  #[ 1.,  2., 1.]]])
-#kern = np.array([[[0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.],
-                  #[ 0., 0., 0.,  0.,  0.]],
-                  
-                  #[[ -1., -2., 0.,  2.,  1.],
-                  #[  -4., -8., 0.,  8.,  4.],
-                  #[ -6., -12,  0., 12., 6.],
-                  #[ -4., -8,    0.,  8., 4.],
-                  #[ -1., -2,   0.,  2., 1.]],
-                  
-                  #[[ -1.,  -4., -6, -4,  -1.],
-                  #[-2., -8., -12., -8., -2.],
-                  #[ 0., 0., 0., 0., 0.],
-                  #[2., 8., 12., 8., 2.],
-                  #[ 1.,  4., 6., 4.,  1.]]])
-#kern = kern/np.linalg.norm(kern)
 
 dirFile = None
 nmins = None
@@ -87,15 +58,14 @@ radius = 0.2
 pft=False
 alpha_0 = 0.1
 c = 0.6
-a = 20.0 # value used for the tanh argument instead of sign
+a = 10.0 # value used for the tanh argument instead of sign
 
-pctg = 0.25
 phIter = 0
 sliceChoice = 150
+pctg = 1
 xtol = [1e-2, 1e-3, 5e-4]
-TV = [0.01, 0.005, 0.001]
-XFM = [0.01, 0.005, 0.001]
-#XFM = [0.02, 0.01, 0.005]
+TV = [0.02, 0.01, 0.005]
+XFM = [0.02, 0.01, 0.005]
 #TV = [0.01, 0.005, 0.002, 0.001]
 #XFM = [0.01,.005, 0.002, 0.001]
 radius = 0.2
@@ -106,10 +76,7 @@ im = im/np.max(abs(im))
 N = np.array(im.shape)  # image Size
 P = 2
 
-pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=np.hstack([1, N[-2:]]), style='mult', pft=pft,ext=0.5)
-if pft:
-    print('Partial Fourier sampling method used')
-k = samp.genSampling(pdf, 50, 2)[0].astype(int)
+k = np.ones(N)
 if len(N) == 2:
     N = np.hstack([1, N])
     k = k.reshape(N)
@@ -117,53 +84,16 @@ if len(N) == 2:
 elif len(N) == 3:
     k = k.reshape(np.hstack([1,N[-2:]])).repeat(N[0],0)
 
+im_scan = abs(im).reshape(N)
+im_dc = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/P14/data/im_dc.npy')
+
+
 ph_ones = np.ones(N[-2:], complex)
-ph_scan = np.zeros(N, complex)
+ph_scan = np.exp(1.j*np.angle(im))
 data = np.zeros(N,complex)
-im_scan = np.zeros(N,complex)
 for i in range(N[0]):
     k[i,:,:] = np.fft.fftshift(k[i,:,:])
     data[i,:,:] = k[i,:,:]*tf.fft2c(im[i,:,:], ph=ph_ones)
-
-    # IMAGE from the "scanner data"
-    im_scan_wph = tf.ifft2c(data[i,:,:], ph=ph_ones)
-    ph_scan[i,:,:] = tf.matlab_style_gauss2D(im_scan_wph,shape=(5,5))
-    ph_scan[i,:,:] = np.exp(1j*ph_scan[i,:,:])
-    im_scan[i,:,:] = tf.ifft2c(data[i,:,:], ph=ph_scan[i,:,:])
-    
-    
-    #im_lr = samp.loRes(im,pctg)
-
-
-# ------------------------------------------------------------------ #
-# A quick way to look at the PSF of the sampling pattern that we use #
-delta = np.zeros(N[-2:])
-delta[int(N[-2]/2),int(N[-1]/2)] = 1
-psf = tf.ifft2c(tf.fft2c(delta,ph_ones)*k,ph_ones)
-# ------------------------------------------------------------------ #
-
-
-# ------------------------------------------------------------------ #
-# -- Currently broken - Need to figure out what's happening here. -- #
-# ------------------------------------------------------------------ #
-if pft:
-    for i in xrange(N[0]):
-        dataHold = np.fft.fftshift(data[i,:,:])
-        kHold = np.fft.fftshift(k[i,:,:])
-        loc = 98
-        for ix in xrange(N[-2]):
-            for iy in xrange(loc,N[-1]):
-                dataHold[-ix,-iy] = dataHold[ix,iy].conj()
-                kHold[-ix,-iy] = kHold[ix,iy]
-    # ------------------------------------------------------------------ #
-
-
-
-pdfDiv = pdf.copy()
-pdfZeros = np.where(pdf==0)
-pdfDiv[pdfZeros] = 1
-#im_scan_imag = im_scan.imag
-#im_scan = im_scan
 
 N_im = N
 hld, dims, dimOpt, dimLenOpt = tf.wt(im_scan[0].real,wavelet,mode)
@@ -171,15 +101,12 @@ N = np.hstack([N_im[0], hld.shape])
 
 w_scan = np.zeros(N)
 w_full = np.zeros(N)
-im_dc = np.zeros(N_im)
 w_dc = np.zeros(N)
 
 for i in xrange(N[0]):
     w_scan[i,:,:] = tf.wt(im_scan.real[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0]
     w_full[i,:,:] = tf.wt(abs(im[i,:,:]),wavelet,mode,dims,dimOpt,dimLenOpt)[0]
-
-    im_dc[i,:,:] = tf.ifft2c(data[i,:,:] / np.fft.ifftshift(pdfDiv), ph=ph_scan[i,:,:]).real.copy()
-    w_dc[i,:,:] = tf.wt(im_dc,wavelet,mode,dims,dimOpt,dimLenOpt)[0]
+    w_dc[i,:,:] = tf.wt(im_dc[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0]
 
 w_dc = w_dc.flatten()
 im_sp = im_dc.copy().reshape(N_im)
@@ -188,8 +115,8 @@ maxval = np.max(abs(im))
 data = np.ascontiguousarray(data)
 
 
-imdcs = [im_dc]#,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
-mets = ['Density Corrected','Zeros','Ones','Random']
+imdcs = [im_dc]
+mets = ['Density Corrected']
 wdcs = []
 
 
@@ -232,18 +159,13 @@ for jj in range(len(stps)):
     gtv[jj,:,:] = grads.gTV(im_stps[jj,:,:].reshape(N_im),N_im,strtag, kern, 0, a=a)
     gxfm[jj,:,:] = tf.iwt(grads.gXFM(stps[jj].reshape(N[-2:]),a=a),wavelet,mode,dims,dimOpt,dimLenOpt)
     gdc[jj,:,:] = grads.gDataCons(im_stps[jj,:,:], N_im, ph_scan, data, k)
+    
 
+    
 for i in xrange(len(stps)):
-    plt.imshow(im_stps[i])
-    plt.colorbar()
-    plt.title('Step with Negative Values')
-    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_0_a_' + str(int(a)) + '_negs')
-    vis.figSubplots([im_stps[i],gtv[i],gxfm[i],gdc[i]],titles=['Step','gTV','gXFM','gDC'],clims=[(minval,maxval),(np.min(gtv[i]),np.max(gtv[i])),(np.min(gxfm[i]),np.max(gxfm[i])),(np.min(gdc[i]),np.max(gdc[i]))])
-    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_0_a_' + str(int(a)) + '_grads')
+    vis.figSubplots([im_stps[i],gtv[i],gxfm[i],gdc[i]],titles=['Step','gTV','gXFM','gDC'])
+    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_grads')
     plt.imshow(TV[i]*gtv[i] + TV[i]*gxfm[i] + gdc[i])
     plt.colorbar()
     plt.title('Total Gradient')
-    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_a_' + str(int(a)) + '_gradTotal')
-    
-
-    
+    saveFig.save('/home/asalerno/Documents/pyDirectionCompSense/gradTests/'+ str(int(100*pctg)) + '_TV_XFM_'+ str(TV[i]) +'_gradTotal')
