@@ -76,12 +76,14 @@ def gDataCons(x, N, ph, data_from_scanner, samp_mask, sz):
     grad = np.zeros(N)
     ph0 = ph.reshape(N)
     #samp_mask = samp_mask.reshape(N)
-    
-    for kk in range(N[0]):
-        x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:],sz/N[0]**2)
-    
-        grad[kk,:,:] = -2*tf.ifft2c(samp_mask[kk,:,:]*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:],sz=sz).real; # -1* & ,real
     #import pdb; pdb.set_trace()
+    
+    x_data = tf.fftnc(x0,ph0,sz)
+    grad = -2*tf.ifftnc(samp_mask*(data_from_scanner-x_data),ph0,sz=sz).real
+    #for kk in range(N[0]):
+        #x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:],sz)
+    
+        #grad[kk,:,:] = -2*tf.ifft2c(samp_mask[kk,:,:]*(data_from_scanner[kk,:,:] - x_data),ph0[kk,:,:],sz=sz).real; # -1* & ,real
     return grad
 
 

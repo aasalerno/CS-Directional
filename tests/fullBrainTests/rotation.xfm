@@ -1,0 +1,9 @@
+MNI Transform File
+%Thu Feb 16 13:05:33 2017>>> param2xfm -rotation 0 0 90 rotation.xfm -clobber
+%(mni_autoreg 0.99.60)
+
+Transform_Type = Linear;
+Linear_Transform =
+ -4.37113882867379e-08 -1 0 0
+ 1 -4.37113882867379e-08 0 0
+ 0 0 1 0;

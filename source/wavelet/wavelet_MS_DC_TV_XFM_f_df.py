@@ -24,7 +24,6 @@ def objectiveFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data,
     This is the optimization function that we're trying to optimize. We are optimizing x here, and testing it within the funcitons that we want, as called by the functions that we've created
     '''
     #dirInfo[0] is M
-    import pdb; pdb.set_trace()
     tv = 0
     xfm = 0
     data.shape = N_im
@@ -46,6 +45,7 @@ def objectiveFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data,
     
     x.shape = (x.size,) # Not the most efficient way to do this, but we need the shape to reset.
     data.shape = (data.size,)
+    #import pdb; pdb.set_trace()
     ##output
     #print('obj: %.2f' % (obj))
     #print('tv: %.2f' % (lam1*tv))
@@ -58,7 +58,6 @@ def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data
     '''
     This is the function that we're going to be optimizing via the scipy optimization pack. This is the function that represents Compressed Sensing
     '''
-    #import pdb; pdb.set_trace()
     disp = 0
     gTV = 0
     gXFM = 0
@@ -71,6 +70,7 @@ def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data
         x0 = tf.iwt(x,wavelet,mode,dims,dimOpt,dimLenOpt)
     
     gdc = grads.gDataCons(x0,N_im,ph,data,k,sz)
+    #import pdb; pdb.set_trace()
     if lam1 > 1e-6:
         gtv = grads.gTV(x0,N_im,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a)
     
@@ -100,7 +100,8 @@ def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data
 # ----------------------------------------------------- #
 
 def objectiveFunctionDataCons(x, N, ph, data, k, sz):
-    obj_data = k*(data - tf.fftnc(x,ph,sz=sz/N[0]**2))
+    #import pdb; pdb.set_trace()
+    obj_data = k*(data - tf.fftnc(x,ph,sz=sz))
     return obj_data*obj_data.conj() #L2 Norm
 
 def objectiveFunctionTV(x, N, strtag, kern, dirWeight=0, dirs=None, nmins=0,
