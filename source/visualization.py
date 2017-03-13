@@ -23,7 +23,7 @@ def closefac(n):
     
     return testNum, int(n/testNum)
     
-def figSubplots(data,dims=None,clims=None,titles=None,figsize=(8,6),colorbar=True):
+def figSubplots(data,dims=None,clims=None,titles=None,figsize=(24,13.5),colorbar=True):
     if isinstance(data,tuple) or isinstance(data,list):
         datahold = np.zeros(np.hstack([len(data),data[0].shape]))
         for i in range(len(data)):

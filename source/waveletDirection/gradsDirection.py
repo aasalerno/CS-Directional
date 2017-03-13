@@ -77,9 +77,9 @@ def gDataCons(x, N, ph, data_from_scanner, samp_mask, sz):
     ph0 = ph.reshape(N)
     #samp_mask = samp_mask.reshape(N)
     #import pdb; pdb.set_trace()
-    
-    x_data = tf.fftnc(x0,ph0,sz)
-    grad = -2*tf.ifftnc(samp_mask*(data_from_scanner-x_data),ph0,sz=sz).real
+    for i in xrange(N[0]):
+        x_data = tf.fftnc(x0[i],ph0,sz)
+        grad[i] = -2*tf.ifftnc(samp_mask[i]*(data_from_scanner[i]-x_data[i]),ph0,sz=sz).real
     #for kk in range(N[0]):
         #x_data = tf.fft2c(x0[kk,:,:],ph0[kk,:,:],sz)
     
@@ -113,9 +113,9 @@ def gTV(x, N, strtag, kern, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,No
     TV_data = tf.TV(x0,N,strtag,kern,dirWeight,dirs,nmins,dirInfo)
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
-            #kernHld = np.flipud(np.fliplr(kern[i])).reshape(Nkern)
-            #grad[:,i,:,:] = correlate(np.tanh(a*TV_data[i]),kernHld,mode='wrap')
             grad[:,i,:,:] = convolve(np.tanh(a*TV_data[i]),kern[i].reshape(Nkern),mode='wrap')
+        elif strtag[i] == 'diff':
+            None
     grad = np.sum(grad,axis=1)
     return grad
     

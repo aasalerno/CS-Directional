@@ -307,3 +307,6 @@ def flip(m, axis):
     except IndexError:
         raise ValueError("axis=%i is invalid for the %i-dimensional input array" % (axis, m.ndim))
     return m[tuple(indexer)]
+
+def rmse(xk,x):
+    return np.sqrt(np.sum((xk-x)**2)/xk.size)

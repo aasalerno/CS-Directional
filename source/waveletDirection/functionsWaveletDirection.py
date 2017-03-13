@@ -69,7 +69,6 @@ def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data
     else:
         x0 = tf.iwt(x,wavelet,mode,dims,dimOpt,dimLenOpt)
     
-    gdc = grads.gDataCons(x0,N_im,ph,data,k,sz)
     #import pdb; pdb.set_trace()
     if lam1 > 1e-6:
         gtv = grads.gTV(x0,N_im,strtag,kern,dirWeight,dirs,nmins,dirInfo=dirInfo,a=a)
@@ -77,6 +76,8 @@ def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data
     gDataCons = np.zeros(N)
     gTV = np.zeros(N)
     gXFM = np.zeros(N)
+    
+    gdc = grads.gDataCons(x0,N_im,ph,data,k,sz)
     
     for i in xrange(N[0]):
         gDataCons[i,:,:] = tf.wt(gdc[i,:,:],wavelet,mode,dims,dimOpt,dimLenOpt)[0]

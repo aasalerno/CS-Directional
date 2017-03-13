@@ -23,6 +23,10 @@ from scipy.interpolate import RectBivariateSpline
 from unwrap2d import *
 import visualization as vis
 from scipy.ndimage.filters import gaussian_filter
+from time import gmtime, strftime
+from pyminc.volumes.factory import *
+
+strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 f = funs.objectiveFunction
 df = funs.derivativeFunction
@@ -61,34 +65,36 @@ kern[0,2,1,1] = 1
 kern[1,1,2,1] = 1
 kern[2,1,1,2] = 1
                   
-dirFile = None
-nmins = None
-dirs = None
-M = None
-dirInfo = [None]*4
+dirFile = '/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt'
+nmins = 5
+dirs = np.loadtxt(dirFile)
+dirInfo = d.calc_Mid_Matrix(dirs,nmins)
 radius = 0.2
 pft=False
 alpha_0 = 0.1
 c = 0.6
 a = 10.0 # value used for the tanh argument instead of sign
 
-pctg = 0.25
+pctg = 0.75
 phIter = 0
 sliceChoice = 150
 xtol = [0.1, 1e-2, 1e-3, 5e-4, 5e-4]
-TV = [0.005, 0.005, 0.002, 0.001, 0.001]
-XFM = [0.005, 0.005, 0.002, 0.001, 0.001]
+TV = [0.005]#, 0.005, 0.002, 0.001, 0.001]
+XFM = [0.005]#, 0.005, 0.002, 0.001, 0.001]
 radius = 0.2
 
 im = np.load('/home/asalerno/Documents/pyDirectionCompSense/brainData/P14/data/fullySampledBrain.npy')
-im = im[150:153,:,:]
+#im = im[150:152,:,:]
 #im = np.load('/home/asalerno/Documents/pyDirectionCompSense/phantom/imFull.npy')
-im = im/np.max(abs(im))
+#im = im/np.max(abs(im))
 minval = np.min(abs(im))
 maxval = np.max(abs(im))
 N = np.array(im.shape)  # image Size
+szFull = im.size
+
+
 P = 2
-nSteps = 6
+nSteps = 4
 if len(TV) < (nSteps+1):
     for i in xrange(nSteps - len(TV) + 1):
         TV.append(TV[-1])
@@ -112,47 +118,47 @@ ph_scan = np.zeros(N, complex)
 data = np.zeros(N,complex)
 dataFull = np.zeros(N,complex)
 
-if N[0] == 1:
-    # IMAGE from the "scanner data"
-    for i in range(N[0]):
-        data[i,:,:] = np.fft.fftshift(k[i,:,:])*tf.fft2c(im[i,:,:], ph=ph_ones)
-        dataFull[i,:,:] = np.fft.fftshift(tf.fft2c(im[i,:,:], ph=ph_ones))
-        im_scan_wph = tf.ifft2c(data[i,:,:], ph=ph_ones)
-        ph_scan[i,:,:] = tf.matlab_style_gauss2D(im_scan_wph,shape=(5,5))
-        ph_scan[i,:,:] = np.exp(1j*ph_scan[i,:,:])
-        im_scan = tf.ifft2c(data[i,:,:], ph=ph_scan[i,:,:])
-else:
-    data = np.fft.fftshift(k[i,:,:])*tf.fftnc(im, ph=ph_ones)
-    dataFull = np.fft.fftshift(tf.fftnc(im, ph=ph_ones))
-    im_scan_wph = tf.ifftnc(data, ph=np.ones(data.shape))
-    ph_scan = np.angle(gaussian_filter(im_scan_wph.real,2) +  1.j*gaussian_filter(im_scan_wph.imag,2))
-    ph_scan = np.exp(1j*ph_scan)
-    im_scan = tf.ifft2c(data, ph=ph_scan)
+#if N[0] == 1:
+    ## IMAGE from the "scanner data"
+    #for i in range(N[0]):
+        #data[i,:,:] = np.fft.fftshift(k[i,:,:])*tf.fft2c(im[i,:,:], ph=ph_ones)
+        #dataFull[i,:,:] = np.fft.fftshift(tf.fft2c(im[i,:,:], ph=ph_ones))
+        #im_scan_wph = tf.ifft2c(data[i,:,:], ph=ph_ones)
+        #ph_scan[i,:,:] = tf.matlab_style_gauss2D(im_scan_wph,shape=(5,5))
+        #ph_scan[i,:,:] = np.exp(1j*ph_scan[i,:,:])
+        #im_scan = tf.ifft2c(data[i,:,:], ph=ph_scan[i,:,:])
+#else:
+data = k*tf.fftnc(im, ph=ph_ones)
+dataFull = np.fft.fftshift(tf.fftnc(im, ph=ph_ones))
+im_scan_wph = tf.ifftnc(data, ph=np.ones(data.shape))
+ph_scan = np.angle(gaussian_filter(im_scan_wph.real,2) +  1.j*gaussian_filter(im_scan_wph.imag,2))
+ph_scan = np.exp(1j*ph_scan)
+im_scan = tf.ifft2c(data, ph=ph_scan)
     
     #im_lr = samp.loRes(im,pctg)
 
 
-# ------------------------------------------------------------------ #
-# A quick way to look at the PSF of the sampling pattern that we use #
-delta = np.zeros(N[-2:])
-delta[int(N[-2]/2),int(N[-1]/2)] = 1
-psf = tf.ifft2c(tf.fft2c(delta,ph_ones)*k,ph_ones)
-# ------------------------------------------------------------------ #
+## ------------------------------------------------------------------ #
+## A quick way to look at the PSF of the sampling pattern that we use #
+#delta = np.zeros(N[-2:])
+#delta[int(N[-2]/2),int(N[-1]/2)] = 1
+#psf = tf.ifft2c(tf.fft2c(delta,ph_ones)*k,ph_ones)
+## ------------------------------------------------------------------ #
 
 
-# ------------------------------------------------------------------ #
-# -- Currently broken - Need to figure out what's happening here. -- #
-# ------------------------------------------------------------------ #
-if pft:
-    for i in xrange(N[0]):
-        dataHold = np.fft.fftshift(data[i,:,:])
-        kHold = np.fft.fftshift(k[i,:,:])
-        loc = 98
-        for ix in xrange(N[-2]):
-            for iy in xrange(loc,N[-1]):
-                dataHold[-ix,-iy] = dataHold[ix,iy].conj()
-                kHold[-ix,-iy] = kHold[ix,iy]
-    # ------------------------------------------------------------------ #
+## ------------------------------------------------------------------ #
+## -- Currently broken - Need to figure out what's happening here. -- #
+## ------------------------------------------------------------------ #
+#if pft:
+    #for i in xrange(N[0]):
+        #dataHold = np.fft.fftshift(data[i,:,:])
+        #kHold = np.fft.fftshift(k[i,:,:])
+        #loc = 98
+        #for ix in xrange(N[-2]):
+            #for iy in xrange(loc,N[-1]):
+                #dataHold[-ix,-iy] = dataHold[ix,iy].conj()
+                #kHold[-ix,-iy] = kHold[ix,iy]
+    ## ------------------------------------------------------------------ #
 
 
 
@@ -201,7 +207,6 @@ ph_scans = []
 dataSubs=[]
 
 
-szFull = im.size
 
 for j in range(nSteps+1):
     NSub = np.array([N[0], N[1]-2*locSteps[j], N[2]-2*locSteps[j]]).astype(int)
@@ -214,32 +219,32 @@ for j in range(nSteps+1):
     if N[0] == 1:
         i = 0
         if locSteps[j]==0:
-            kSub = k[i,:,:]
+            kSub = k[i,:,:].copy()
             dataSub[i,:,:] = np.fft.fftshift(kSub*dataFull[i,:,:])
-            im_FullSub = tf.ifft2c(np.fft.fftshift(dataFull[i,:,:]),ph=ph_onesSub[i],sz=szFull/N[0]**2)
+            im_FullSub = tf.ifft2c(np.fft.fftshift(dataFull[i,:,:]),ph=ph_onesSub[i],sz=szFull/N[0])
         else:
-            kSub[i,:,:] = k[i,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]]
+            kSub[i,:,:] = k[i,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]].copy()
             dataSub[i,:,:] = np.fft.fftshift(kSub[i,:,:]*dataFull[i,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]])
-            im_FullSub = tf.ifft2c(np.fft.fftshift(dataFull[i,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]]),ph=ph_onesSub,sz=szFull/N[0]**2)
+            im_FullSub = tf.ifft2c(np.fft.fftshift(dataFull[i,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]]),ph=ph_onesSub,sz=szFull/N[0])
             
-        im_scan_wphSub = tf.ifft2c(dataSub[i,:,:], ph=ph_onesSub, sz=szFull/N[0]**2)
-        ph_scanSub[i,:,:] = tf.matlab_style_gauss2D(im_scan_wphSub,shape=(5,5))
+        im_scan_wphSub = tf.ifft2c(dataSub[i,:,:], ph=ph_onesSub, sz=szFull/N[0])
+        ph_scanSub[i,:,:] = np.angle(gaussian_filter(im_scan_wphSub[i,:,:].real,0) +  1.j*gaussian_filter(im_scan_wphSub[i,:,:].imag,0))
         ph_scanSub[i,:,:] = np.exp(1j*ph_scanSub[i,:,:])
-        im_scanSub[i,:,:] = tf.ifft2c(dataSub[i,:,:], ph=ph_scanSub[i,:,:], sz=szFull/N[0]**2)
+        im_scanSub[i,:,:] = tf.ifft2c(dataSub[i,:,:], ph=ph_scanSub[i,:,:], sz=szFull/N[0])
     else:
         if locSteps[j]==0:
-            kSub = k
+            kSub = k.copy()
             dataSub = np.fft.fftshift(kSub*dataFull)
             im_FullSub = tf.ifftnc(np.fft.fftshift(dataFull),ph=ph_onesSub,sz=szFull)
         else:
-            kSub = k[:,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]]
+            kSub = k[:,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]].copy()
             dataSub = np.fft.fftshift(kSub*dataFull[:,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]])
-            im_FullSub = tf.ifftnc(np.fft.fftshift(dataFull[:,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]]),ph=ph_onesSub,sz=szFull/N[0])
+            im_FullSub = tf.ifftnc(np.fft.fftshift(dataFull[:,locSteps[j]:-locSteps[j],locSteps[j]:-locSteps[j]]),ph=ph_onesSub,sz=szFull)
             
-        im_scan_wphSub = tf.ifftnc(dataSub, ph=ph_onesSub, sz=szFull/N[0])
+        im_scan_wphSub = tf.ifftnc(dataSub, ph=ph_onesSub, sz=szFull)
         ph_scanSub = np.angle(gaussian_filter(im_scan_wphSub.real,0) +  1.j*gaussian_filter(im_scan_wphSub.imag,0))
         ph_scanSub = np.exp(1j*ph_scanSub)
-        im_scanSub = tf.ifftnc(dataSub, ph=ph_scanSub, sz=szFull/N[0])
+        im_scanSub = tf.ifftnc(dataSub, ph=ph_scanSub, sz=szFull)
     
     if j == 0:
         if len(kSub.shape) == 3:
@@ -248,7 +253,7 @@ for j in range(nSteps+1):
             kMasked = kSub.copy()
     else:
         padMask = tf.zpad(np.ones(kMasked[0].shape),NSub[-2:])
-        kMasked = ((1-padMask)*kSub[0] + padMask*tf.zpad(kMasked[0],NSub[-2:])).reshape(NSub)
+        kMasked = ((1-padMask)*kSub[0] + padMask*tf.zpad(kMasked[0],NSub[-2:])).reshape(np.hstack([1,NSub[-2:]]))
     kMasks.append(kMasked)
     
     # Now we need to construct the starting point
@@ -290,15 +295,15 @@ for j in range(nSteps+1):
         #data_dc = np.fft.fftshift(tf.zpad(np.ones(kStp.shape[-2:])*dataStp[0], np.array(kSub.shape[-2:]).astype(int)) + (1-kpad)*np.fft.fftshift(dataSub))
         #im_dcSub = tf.ifft2c(data_dc[i,:,:] / np.fft.ifftshift(pdfDiv), ph=ph_scanSub[i,:,:]).real.copy().reshape(N_imSub)
     imdcs = [im_dcSub] #,np.zeros(N_im),np.ones(N_im),np.random.randn(np.prod(N_im)).reshape(N_im)]
-        
+    #import pdb; pdb.set_trace()
     
     kSamp = np.fft.fftshift(kMasked).reshape(np.hstack([1,N_imSub[-2:]])).repeat(N_imSub[0],0)
     
-    args = (NSub, N_imSub, szFull, dimsSub, dimOptSub, dimLenOptSub, TV[j], XFM[j], dataSub, kSamp, strtag, ph_scanSub, kern, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
-    w_result = opt.fmin_tnc(f, w_dcSub, fprime=df, args=args, accuracy=1e-4, disp=5)
+    args = (NSub, N_imSub, szFull, dimsSub, dimOptSub, dimLenOptSub, TV[0], XFM[0], dataSub, kSamp, strtag, ph_scanSub, kern, dirWeight, dirs, dirInfo, nmins, wavelet, mode, a)
+    w_result = opt.fmin_tnc(f, w_scanSub.flat, fprime=df, args=args, accuracy=1e-4, disp=0)
     w_dc = w_result[0]
     stps.append(w_dc)
-    tvStps.append(TV[i])
+    tvStps.append(TV[j])
     w_stp.append(w_dc.reshape(NSub))
     imStp.append(tf.iwt(w_stp[-1][0],wavelet,mode,dimsSub,dimOptSub,dimLenOptSub))
     #plt.imshow(imStp[-1],clim=(minval,maxval)); plt.colorbar(); plt.show()
@@ -307,15 +312,31 @@ for j in range(nSteps+1):
     wdcHold = w_dc.reshape(NSub)
     dataStp = np.fft.fftshift(tf.fft2c(imStp[-1],ph_scanSub))
     kStp = np.fft.fftshift(kSub).copy()
-    kMasked = (np.floor(1-kMasked)*pctgSamp[locSteps[j]]*1.0 + kMasked).reshape(N_imSub)
-    Ns.append(NSub)
-    N_ims.append(N_imSub)
-    dims.append(dimsSub)
-    dimOpts.append(dimOptSub)
-    dimLenOpts.append(dimLenOptSub)
-    ph_scans.append(ph_scanSub)
-    dataSubs.append(dataSub)
-        
+    #kMaskRpt = kMasked.reshape(np.hstack([1,N_imSub[-2:]])).repeat(N_imSub[0],0)
+    kMasked = (np.floor(1-kMasked)*pctgSamp[locSteps[j]]*1.0 + kMasked).reshape(np.hstack([1, N_imSub[-2:]]))
+    #Ns.append(NSub)
+    #N_ims.append(N_imSub)
+    #dims.append(dimsSub)
+    #dimOpts.append(dimOptSub)
+    #dimLenOpts.append(dimLenOptSub)
+    #ph_scans.append(ph_scanSub)
+    #dataSubs.append(dataSub)
+    
+wHold = w_dc.copy().reshape(NSub)
+imHold = np.zeros(N_imSub)
+
+for i in xrange(N[0]):
+    imHold[i,:,:] = tf.iwt(wHold[i,:,:],wavelet,mode,dimsSub,dimOptSub,dimLenOptSub)
+    
+
+np.save('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final' + str(int(nSteps)) + '.npy',imHold)
+np.save('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final' + str(int(nSteps)) + '.npy',wHold)
+
+outvol = volumeFromData('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final_' + str(int(nSteps)) + '.mnc', imHold, dimnames=['xspace','yspace','zspace'], starts=(0, 0, 0), steps=(1, 1, 1), volumeType="uint")
+outvol.writeFile()
+strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
+
 #im_stps = []
 #gtv = []
 #gxfm = []

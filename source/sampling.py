@@ -144,8 +144,8 @@ def genPDF(img_sz,
     pdf = (1-r)**p
     pdf[idx] = 1
 
-    if len(idx[0]) > PCTG/3:
-        raise ValueError('Radius is too big! Rerun with smaller central radius.')
+    #if len(idx[0]) > PCTG/3:
+        #raise ValueError('Radius is too big! Rerun with smaller central radius.')
 
     # Bisect the data to get the proper PDF values to allow for the optimal sampling pattern generation
     if p==0:
@@ -287,7 +287,7 @@ def genSamplingDir(img_sz=[180,180],
     # Calculate the distance. Do it for both halves of the sphere
     for i in xrange(n):
         for j in xrange(n):
-            r[i,j] = min(np.sqrt(np.sum((-dirs[i,:] - dirs[j,:])**2)),np.sqrt(np.sum((dirs[i,:] - dirs[j,:])**2)))
+            r[i,j] = min(np.sqrt(np.sum((dirs[i,:] + dirs[j,:])**2)),np.sqrt(np.sum((dirs[i,:] - dirs[j,:])**2)))
 
     invR = 1/(r+EPS)
 
@@ -308,7 +308,8 @@ def genSamplingDir(img_sz=[180,180],
     else:
         engStart = np.load(engfile)
         # npy file
-    #np.save('/micehome/asalerno/Documents/pyDirectionCompSense/engFile30dir.npy',engStart)
+    #import pdb; pdb.set_trace()
+    #np.save('/micehome/asalerno/Documents/pyDirectionCompSense/phantom/engFile30dir_'+ str(int(nmins)) + 'mins.npy',engStart)
 
     print('Producing "best cases..."')
     # Build the best cases of trying to get the vectors together
@@ -343,7 +344,7 @@ def genSamplingDir(img_sz=[180,180],
         #vecsUnique,vecs_idx = np.unique(vecsInd,return_index = True)
         
     while cts[-1]/cts[0] >= 1.2:
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         srt_hold = srt.copy().reshape(1,len(srt))[0,:k]
         srt_hold.sort()
         # We need to add one here as index and direction number differ by a value of one
@@ -379,12 +380,12 @@ def genSamplingDir(img_sz=[180,180],
             amts[i] = vecsMin[vecsMin == i].size
         srt = amts.argsort()
         cts = amts[srt]
-        if np.random.random(1)<.1:
-            print(cts)
+        #if np.random.random(1)<.1:
+            #print(cts)
     
     # Now we have to finally get the sampling pattern from this!
     print('Obtaining sampling pattern...')
-    [x,y] = np.meshgrid(np.linspace(-1,1,img_sz[1]),np.linspace(-1,1,img_sz[0]))
+    [x,y] = np.meshgrid(np.linspace(-1,1,img_sz[-2]),np.linspace(-1,1,img_sz[-1]))
     r = np.sqrt(x**2 + y**2)
     
     # If not cylindrical, we need to have vals < 1
@@ -396,11 +397,11 @@ def genSamplingDir(img_sz=[180,180],
     [rx,ry] = np.where(r <= radius)
     
     # Create our sampling mask
-    samp = np.zeros(np.hstack([n,img_sz]))
+    samp = np.zeros(np.hstack([img_sz]))
     nSets = np.hstack([vecsMin.shape, 1])
     
     # Start making random choices for the values that require them
-    
+    #import pdb; pdb.set_trace()
     for i in xrange(len(rows)):
         val = np.floor(nSets[0]*np.random.random(1)).astype(int)
         choice = vecsMin[val,].astype(int)
@@ -409,7 +410,7 @@ def genSamplingDir(img_sz=[180,180],
     for i in xrange(len(rx)):
         samp[:,rx[i],ry[i]] = 1
         
-    if endSize != img_sz:
+    if np.any(endSize != img_sz):
         print('Zero padding...')
         samp_final = np.zeros(np.hstack([n,endSize]))
         

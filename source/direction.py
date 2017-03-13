@@ -10,6 +10,7 @@ import numpy as np
 import numpy.fft as fft
 import scipy.optimize as sciopt
 from numpy.linalg import inv
+import sampling as samp
 
 
 
@@ -70,21 +71,25 @@ def calc_Mid_Matrix(dirs,nmins):
     '''
     n = dirs.shape[0]
     for i in range(n):
-        if dirs[i,2] < 0:
-            dirs[i,:] = -dirs[i,:]
-
         inds = dot_product_with_mins(dirs,nmins)
         #dirs = np.loadtxt(filename)
         
-        M = np.zeros([n,nmins,nmins])
-        
+    M = np.zeros([n,nmins,nmins])
+    A = np.zeros([n,nmins,dirs.shape[1]])
+    Ahat = np.zeros([n,dirs.shape[1],nmins])
+    
     for qDir in xrange(n):
-        A = dirs[inds[qDir,:],:]-dirs[qDir,:]
+        for i in range(len(inds[qDir])):
+            a = np.argmin([np.sum((dirs[inds[qDir,:],:][i]-dirs[qDir,:])**2),np.sum((dirs[inds[qDir,:],:][i]+dirs[qDir,:])**2)])
+            if a == 0:
+                A[qDir,i,:] = dirs[inds[qDir,:][i],:] - dirs[qDir,:]
+            elif a == 1:
+                A[qDir,i,:] = dirs[inds[qDir,:][i],:] - dirs[qDir,:]
         #datHold = datHold/np.linalg.norm(datHold) # Should I do this? Normalizes the vectors
         #A = np.hstack([A, datHold])
         # Calculate Ahat, which is the solution to Ax = b, [(A'A)^(-1)*A']b = x
-        Ahat = np.dot(inv(np.dot(A.T,A)),A.T)
-        M[qDir,:,:] = np.dot(Ahat.T,Ahat)
+        Ahat[qDir] = np.dot(inv(np.dot(A[qDir].T,A[qDir])),A[qDir].T)
+        M[qDir] = np.dot(Ahat[qDir].T,Ahat[qDir])
     
     
     # We need to take care of the positive and negatives of the images that we are using, since this system has a +/- aspect to the comparisons that occur
@@ -114,46 +119,44 @@ def calc_Mid_Matrix(dirs,nmins):
     dirInfo.append(dIM)
     dirInfo.append(Ause)
     dirInfo.append(inds)
+    dirInfo.append(Ahat)
     
     return dirInfo
-        
-    
-#def residuals(a,b):
-#    return 
-    
-def least_Squares_Fitting(x,N,strtag,dirs,inds,M):
+
+
+def least_Squares_Fitting(x,N,strtag,dirs,inds,Ahat):
     
     #import pdb; pdb.set_trace()
-    x0 = x.copy().reshape(N)
+    x0 = x.copy().reshape(N[0],-1)
     nmins = inds.shape[1]
-    dirloc = strtag.index("diff")
-    x0 = np.rollaxis(x0,dirloc)
-    Gdiffsq = np.zeros(N)
+    #dirloc = strtag.index("diff")
+    #x0 = np.rollaxis(x0,dirloc)
+    Gdiffsq = np.zeros([N[0],3,N[1]*N[2]])
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
         
         # Assume the data is coming in as image space data and pull out what we require
-        Iq = x0[q,:,:]
-        Ir = x0[r,:,:]
-        nrow, ncol = Iq.shape
+        Iq = x0[q,:]
+        Ir = x0[r,:]
+        #nrow, ncol = Iq.shape
         
         #A = np.zeros(np.hstack([r.shape,3]))
         Irq = Ir - Iq # Iq will be taken from Ir for each part of axis 0
         #Aleft = np.linalg.solve((A.T*A),A.T)
         #beta = np.zeros(np.hstack([Iq.shape,3]))
         
-        for i in xrange(nrow):
-            for j in xrange(ncol):
-                #Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j].reshape(1,nmins),M[q,:,:]),Irq[:,i,j].reshape(nmins,1))[0,0]
-                Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j],M[q,:,:]),Irq[:,i,j])
+        Gdiffsq[q] = np.dot(Ahat[q],Irq)
+        #for i in xrange(nrow):
+            #for j in xrange(ncol):
+                #Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j],M[q,:,:]),Irq[:,i,j])
     
     # This line puts the data back into the orientation that it was in before
-    Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)
+    #Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)
     
     return Gdiffsq
     
-def dir_dataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
+def dirDataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
     if not origDataSize:
         origDataSize = data.shape[-2:]
     
@@ -197,7 +200,209 @@ def dir_dataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
     
     return data_tog
     
+
     
+
+def makeDirSetsHierarchy(dirs,pctg):
+    if isinstance(dirs,str):
+        dirs = np.loadtxt(dirs)
+    
+    nDirs = len(dirs)
+    dp = np.zeros([nDirs,nDirs])
+    
+    for i in range(nDirs):
+        for j in range(nDirs):
+            dp[i,j] = np.dot(dirs[i,:],dirs[j,:])
+    
+
+def makeDirSetsPE(dirs,pctg):
+    import collections
+    if isinstance(dirs,str):
+        dirs = np.loadtxt(dirs)
+    nDirs = len(dirs)
+    dp = np.zeros([nDirs,nDirs])
+    dist = np.zeros([nDirs,nDirs])
+    
+    for i in range(nDirs):
+        for j in range(nDirs):
+            dp[i,j] = abs(np.dot(dirs[i,:],dirs[j,:]))
+            dist[i,j] = np.min([np.sqrt(np.sum((dirs[i,:] - dirs[j,:])**2)), np.sqrt(np.sum((dirs[i,:] + dirs[j,:])**2))])
+    
+    # Calculate the distances so that we can look at the best cases
+    dist[np.arange(nDirs),np.arange(nDirs)] = 1e-6
+    dist_inv = 1/dist
+    dist_inv[np.arange(nDirs),np.arange(nDirs)] = 0
+    
+    # Lets first make the different "starting points" that we need 
+    nSets = int(np.round(1/pctg))+1
+    nVals = int(np.floor(nDirs/nSets))
+    startPoints = np.argsort(dp)[:,-(nSets):]
+    allCombos = []
+    finEnergies = []
+    
+    
+    for dtest in xrange(nDirs):
+        dirLocs = np.arange(nDirs)
+        valsHeld = startPoints[dtest]
+        dpHold = dp.copy()
+        combs = []
+        for i in xrange(nSets):
+            combs.append([valsHeld[i]])
+            valsRemaining = np.delete(dirLocs,valsHeld)
+        for nVal in xrange(nVals-1):
+            energies = np.zeros([nSets,len(valsRemaining)])
+            minLocs = np.zeros([nSets,len(valsRemaining)])
+            minVals = np.zeros([nSets,len(valsRemaining)])
+            for nSet in xrange(nSets):
+                row_idx = np.array(combs[nSet])
+                col_idx = np.array(valsRemaining)
+                energies[nSet,:] = np.sum(dist_inv[row_idx[:,None],col_idx].reshape(len(combs[nSet]),len(valsRemaining)),axis=0)
+                minLocs[nSet,:] = valsRemaining[np.argsort(energies[nSet,:])]
+                minVals[nSet,:] = np.sort(energies[nSet,:])
+            listMins = list(minLocs[:,0])
+            sets = collections.defaultdict(list)
+            dups = collections.defaultdict(list)
+            for index, item in enumerate(listMins):
+                sets[item].append(index)
+            for key in sets:
+                if len(sets[key])>1:
+                    dups[key] = sets[key]
+            if not dups:
+                minLocsUse = minLocs[:,0]
+            else:
+                while dups:
+                    contestSets = dups[dups.keys()[0]]
+                    setWinner = contestSets[np.argmin(minVals[contestSets,0])]
+                    setLosers = np.delete(contestSets,np.argwhere(np.array(contestSets) == setWinner))
+                    minLocs[setLosers,:] = np.roll(minLocs[setLosers,:],-1,axis=1)
+                    minVals[setLosers,:] = np.roll(minVals[setLosers,:],-1,axis=1)
+                    listMins = list(minLocs[:,0])
+                    sets = collections.defaultdict(list)
+                    dups = collections.defaultdict(list)
+                    for index, item in enumerate(listMins):
+                        sets[item].append(index)
+                    for key in sets:
+                        if len(sets[key])>1:
+                            dups[key] = sets[key]
+            
+            for nSet in xrange(nSets):
+                combs[nSet].append(int(listMins[nSet]))
+                
+            valsRemaining = np.delete(valsRemaining,np.where(np.in1d(valsRemaining,np.array(listMins).astype(int))))
+        
+        if np.any(valsRemaining):
+            # we need to find where the last ones should go
+            energies = np.zeros([nSets,len(valsRemaining)])
+            minLocs = np.zeros([nSets,len(valsRemaining)])
+            minVals = np.zeros([nSets,len(valsRemaining)])
+            for nSet in xrange(nSets):
+                row_idx = np.array(combs[nSet])
+                col_idx = np.array(valsRemaining)
+                energies[nSet,:] = np.sum(dist_inv[row_idx[:,None],col_idx].reshape(len(combs[nSet]),len(valsRemaining)),axis=0)
+                #minLocs[nSet,:] = valsRemaining[np.argsort(energies[nSet,:])]
+                #minVals[nSet,:] = np.sort(energies[nSet,:])
+            
+            minVals = np.sort(energies,axis=0)
+            minLocs = np.argsort(energies,axis=0)
+            listMins = list(minLocs[0,:])
+            sets = collections.defaultdict(list)
+            dups = collections.defaultdict(list)
+            for index, item in enumerate(listMins):
+                sets[item].append(index)
+            for key in sets:
+                if len(sets[key])>1:
+                    dups[key] = sets[key]
+
+            if not dups:
+                    minLocsUse = minLocs[:,0]
+            else:
+                while dups:
+                    contestSets = dups[dups.keys()[0]]
+                    setWinner = contestSets[np.argmin(minVals[0,contestSets])]
+                    setLosers = np.delete(contestSets,np.argwhere(np.array(contestSets) == setWinner))
+                    minLocs[:,setLosers] = np.roll(minLocs[:,setLosers],-1,axis=0)
+                    minVals[:,setLosers] = np.roll(minVals[:,setLosers],-1,axis=0)
+                    listMins = list(minLocs[0,:])
+                    sets = collections.defaultdict(list)
+                    dups = collections.defaultdict(list)
+                    for index, item in enumerate(listMins):
+                        sets[item].append(index)
+                    for key in sets:
+                        if len(sets[key])>1:
+                            dups[key] = sets[key]
+            
+            valsDelete = []
+            for val in range(len(listMins)):
+                combs[listMins[val]].append(valsRemaining[val])
+                valsDelete.append(valsRemaining[val])
+                
+            valsRemaining = np.delete(valsRemaining,np.where(np.in1d(valsRemaining,np.array(valsDelete).astype(int))))
+            
+            if valsRemaining:
+                print('Something went wrong. Values still left')
+                #import pdb; pdb.set_trace()
+        
+        allCombos.append(combs)
+    
+    sumEnergiesCombs = []
+    allEnergies = np.zeros(len(allCombos))
+    for i in xrange(nDirs):
+        sumEnergies = np.zeros(nSets)
+        sumCombo = np.zeros(nSets)
+        for j in xrange(nSets):
+            row_idx = np.array(allCombos[i][j])
+            col_idx = row_idx
+            sumEnergies[j] = np.sum(dist_inv[row_idx[:,None],col_idx])/2
+            sumCombo[j] = sumEnergies[j]/len(allCombos[i][j])
+        sumEnergiesCombs.append(sumCombo)
+        allEnergies[i] = np.sum(sumEnergies)
+        
+    bestChoice = np.argmin(allEnergies)
+    
+    return allCombos[bestChoice], allCombos, bestChoice
+    
+    
+
+    
+def dirSampPattern(N,P,pctg,radius,dirs,radFac=1.5):
+    #import pdb; pdb.set_trace()
+    N = np.array(N[-2:])
+    smallImgSize = np.floor(radFac*(radius*N)).astype(int)
+    if smallImgSize[0]%2 == 1:
+        smallImgSize[0] -= 1
+    if smallImgSize[1]%2 == 1:
+        smallImgSize[1] -= 1
+    sq = ((N-smallImgSize)/2).astype(int)
+    pctgSmall = np.min([2*pctg,0.75])
+    pdf = samp.genPDF(smallImgSize,P,pctgSmall,radius=1/radFac,cyl=[1,smallImgSize[-2],smallImgSize[-1]],pft=False,ext=0.5)
+    #pdf = samp.genPDF(smallImgSize,P,pctgSmall,radius=1/radFac,cyl=[0],pft=False,ext=0.5)
+    # We want to make sure that we're only looking at the circle now...
+    x,y = np.meshgrid(np.linspace(-1,1,smallImgSize[1]),np.linspace(-1,1,smallImgSize[0]))
+    r = np.sqrt(x**2+y**2)
+    pdf[pdf<=pctg] = 0
+    pdf[(pdf == 0)*(r <= 1)] = pctg
+    k = np.zeros(np.hstack([len(dirs), N]))
+    for i in range(len(dirs)):
+        k[i,sq[0]:-sq[0],sq[1]:-sq[1]] = samp.genSampling(pdf, int(1e-2*pdf.size), 2)[0].astype(int)
+    
+    sampSets = makeDirSetsPE(dirs,pctg)[1]
+    nDirs = len(dirs)
+    nSets = len(sampSets[0])
+    #nVals = len(sampSets[1])
+    #sampSets = np.array(sampSets)
+    
+    x,y = np.meshgrid(np.linspace(-1,1,N[1]),np.linspace(-1,1,N[0]))
+    rSamp = np.sqrt(x**2+y**2)
+    rLocs = (rSamp<=1).astype(int)
+    rSmall = zpad((r<=1).astype(int),rSamp.shape)
+    sampLocs = np.where(rLocs*(rSmall==0))
+    
+    for i in range(len(sampLocs[0])):
+        randDir = int(np.random.random(1)*nDirs)
+        randSet = int(np.random.random(1)*nSets)
+        k[sampSets[randDir][randSet],sampLocs[0][i],sampLocs[1][i]] = 1
+           
+    return k
     
 def zpad(orig_data,res_sz):
     res_sz = np.array(res_sz)
