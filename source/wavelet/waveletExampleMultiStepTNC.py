@@ -65,9 +65,11 @@ kern[0,2,1,1] = 1
 kern[1,1,2,1] = 1
 kern[2,1,1,2] = 1
                   
-dirFile = '/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt'
+dirFile = '/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt'
+
 nmins = 5
-dirs = np.loadtxt(dirFile)
+dirs = np.loadtxt(dirFile)
+
 dirInfo = d.calc_Mid_Matrix(dirs,nmins)
 radius = 0.2
 pft=False
@@ -75,7 +77,7 @@ alpha_0 = 0.1
 c = 0.6
 a = 10.0 # value used for the tanh argument instead of sign
 
-pctg = 0.75
+pctg = 0.50
 phIter = 0
 sliceChoice = 150
 xtol = [0.1, 1e-2, 1e-3, 5e-4, 5e-4]
@@ -119,7 +121,8 @@ data = np.zeros(N,complex)
 dataFull = np.zeros(N,complex)
 
 #if N[0] == 1:
-    ## IMAGE from the "scanner data"
+    ## IMAGE from the "scanner data"
+
     #for i in range(N[0]):
         #data[i,:,:] = np.fft.fftshift(k[i,:,:])*tf.fft2c(im[i,:,:], ph=ph_ones)
         #dataFull[i,:,:] = np.fft.fftshift(tf.fft2c(im[i,:,:], ph=ph_ones))
@@ -229,6 +232,7 @@ for j in range(nSteps+1):
             
         im_scan_wphSub = tf.ifft2c(dataSub[i,:,:], ph=ph_onesSub, sz=szFull/N[0])
         ph_scanSub[i,:,:] = np.angle(gaussian_filter(im_scan_wphSub[i,:,:].real,0) +  1.j*gaussian_filter(im_scan_wphSub[i,:,:].imag,0))
+        #ph_scanSub[i,:,:] = tf.matlab_style_gauss2D(im_scan_wphSub,shape=(5,5))
         ph_scanSub[i,:,:] = np.exp(1j*ph_scanSub[i,:,:])
         im_scanSub[i,:,:] = tf.ifft2c(dataSub[i,:,:], ph=ph_scanSub[i,:,:], sz=szFull/N[0])
     else:
@@ -329,12 +333,19 @@ for i in xrange(N[0]):
     imHold[i,:,:] = tf.iwt(wHold[i,:,:],wavelet,mode,dimsSub,dimOptSub,dimLenOptSub)
     
 
-np.save('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final' + str(int(nSteps)) + '.npy',imHold)
-np.save('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final' + str(int(nSteps)) + '.npy',wHold)
+#np.save('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final' + str(int(nSteps)) + '.npy',imHold)
+#np.save('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final' + str(int(nSteps)) + '.npy',wHold)
 
-outvol = volumeFromData('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final_' + str(int(nSteps)) + '.mnc', imHold, dimnames=['xspace','yspace','zspace'], starts=(0, 0, 0), steps=(1, 1, 1), volumeType="uint")
-outvol.writeFile()
-strftime("%Y-%m-%d %H:%M:%S", gmtime())
+#outvol = volumeFromData('/hpf/largeprojects/MICe/asalerno/pyDirectionCompSense/tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final_' + str(int(nSteps)) + '.mnc', imHold, dimnames=['xspace','yspace','zspace'], starts=(0, 0, 0), steps=(1, 1, 1), volumeType="uint")
+
+#np.save('tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final.npy',imHold)
+#np.save('tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final.npy',wHold)
+
+
+#outvol = volumeFromData('tests/fullBrainTests/' + str(int(100*pctg)) + '_3_spatial_0.005_TV_im_final.mnc', imHold, dimnames=['xspace','yspace','zspace'], starts=(0, 0, 0), steps=(1, 1, 1), volumeType="uint")
+
+#outvol.writeFile()
+#strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 
 #im_stps = []
