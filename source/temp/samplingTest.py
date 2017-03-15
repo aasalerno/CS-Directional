@@ -65,9 +65,9 @@ XFM = [0.005] #, 0.005, 0.002, 0.001, 0.001]
 dirWeight = 1
 
 
-#im = np.load('/home/asalerno/Documents/pyDirectionCompSense/phantom/diffusionPhantomSNR1000.npy')
-im = np.load('/home/asalerno/Documents/pyDirectionCompSense/directionData/singleSlice_30dirs.npy')
-im=im/np.max(abs(im))
+im = np.load('/home/asalerno/Documents/pyDirectionCompSense/phantom/diffusionPhantomSmoothedSNR1000.npy')
+#im = np.load('/home/asalerno/Documents/pyDirectionCompSense/directionData/singleSlice_30dirs.npy')
+#im=im/np.max(abs(im))
 minval = np.min(abs(im))
 maxval = np.max(abs(im))
 N = np.array(im.shape)  # image Size
@@ -78,8 +78,9 @@ P = 2
 nSteps = 4
 
 print('k for Directions')
-kDir = samp.genSamplingDir(img_sz=N, dirFile=dirFile, pctg=pctg, cyl=[1], radius=radius,            
-                nmins=nmins, engfile=engfile)
+#kDir = samp.genSamplingDir(img_sz=N, dirFile=dirFile, pctg=pctg, cyl=[1], radius=radius,            
+                #nmins=nmins, engfile=engfile)
+kDir = d.dirPDFSamp(N,P=2,pctg=0.25,radius=0.2,dirs=dirs,cyl=True,taper=0.25)
 
 pdf = samp.genPDF(N[-2:], P, pctg, radius=radius, cyl=[1, N[-2], N[-1]], style='mult', pft=pft,ext=0.5)
 k = np.zeros(N)
@@ -118,8 +119,11 @@ for i in range(N[0]):
 
 
 print('Mix the Data')
-dataDirComb = d.dir_dataSharing(kDir,dataDir,dirs,[256,256],maxCheck=5,bymax=1)
-dataComb = d.dir_dataSharing(k,data,dirs,[256,256],maxCheck=5,bymax=1)
+dataDirComb = d.dirDataSharing(kDir,dataDir,dirs,N[-2:],maxCheck=5,bymax=1)
+dataComb = d.dirDataSharing(k,data,dirs,N[-2:],maxCheck=5,bymax=1)
+kDirComb = d.dirDataSharing(kDir,kDir,dirs,N[-2:],maxCheck=5,bymax=1)
+kComb = d.dirDataSharing(k,k,dirs,N[-2:],maxCheck=5,bymax=1)
+
 
 ph_scanComb = np.zeros(N, complex)
 im_scanComb = np.zeros(N, complex)
@@ -140,7 +144,7 @@ for i in range(N[0]):
 
 print('Plot it')
 clims = [[minval,maxval]]*5
-for i in range(3):
+for i in range(4):
     clims.append([0,1])
 vis.figSubplots([abs(im[0]),
                  im_scan[0].real,
@@ -149,9 +153,26 @@ vis.figSubplots([abs(im[0]),
                  im_scanDirComb[0].real,
                  k[0],
                  kDir[0],
-                 np.zeros([256,256])],
+                 kComb[0],
+                 kDirComb[0]],
                  clims=clims,
-                 titles=['Original','Var Dens','Var Dens Comb','Uni Samp','Uni Samp Comb','Var Dens k','Uni Dens k',''])
-                 
+                 titles=['Original','Var Dens','Var Dens Comb','Uni Samp','Uni Samp Comb','Var Dens k','Combo Dens k','Var Dens Shared k','Combo Dens Shared k'],colorbar=False)
+
 #plt.show()
-saveFig.save('tests/directionTests/samplingMethodsBrain')
+saveFig.save('tests/directionTests/phantomSmoothed_teamWithVarDens')
+
+
+plt.figure(figsize=(24,13.5))
+plt.subplot(2,2,1)
+samp.radialHistogram(k[0],rmax=1)
+plt.title('Radial Histogram Var Dens')
+plt.subplot(2,2,2)
+samp.radialHistogram(kDir[0],rmax=1)
+plt.title('Radial Histogram Combo Dens')
+plt.subplot(2,2,3)
+samp.radialHistogram(kComb[0],rmax=1)
+plt.title('Radial Histogram Var Dens Shared')
+plt.subplot(2,2,4)
+samp.radialHistogram(kDirComb[0],rmax=1)
+plt.title('Radial Histogram Combo Dens Shared')
+saveFig.save('tests/directionTests/phantomSmoothed_radialHistograms')

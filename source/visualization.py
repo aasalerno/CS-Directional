@@ -25,13 +25,13 @@ def closefac(n):
     
 def figSubplots(data,dims=None,clims=None,titles=None,figsize=(24,13.5),colorbar=True):
     if isinstance(data,tuple) or isinstance(data,list):
-        datahold = np.zeros(np.hstack([len(data),data[0].shape]))
+        datahold = [] #np.zeros(np.hstack([len(data),data[0].shape]))
         for i in range(len(data)):
-            datahold[i,:,:] = data[i]
+            datahold.append(data[i])
         data = datahold
         
     if not dims:
-        dims = np.array(closefac(data.shape[0]))
+        dims = np.array(closefac(len(data)))
     
     if clims is not None:
         if len(clims) == 2:
@@ -43,14 +43,14 @@ def figSubplots(data,dims=None,clims=None,titles=None,figsize=(24,13.5),colorbar
             raise TypeError('Number of limits and datasets don''t match')
     
     fig = plt.figure(figsize=figsize)
-    data = np.squeeze(data)
-    for i in range(data.shape[0]):
+    #data = np.squeeze(data)
+    for i in range(len(data)):
         #import pdb; pdb.set_trace()
         ax = fig.add_subplot(dims[0],dims[1],i+1)
         if clims:
-            plt.imshow(data[i,:,:],clim=clims[i])
+            plt.imshow(np.squeeze(data[i]),clim=clims[i])
         else:
-            plt.imshow(data[i,:,:],clim=clims)
+            plt.imshow(np.squeeze(data[i]),clim=clims)
         if titles:
             plt.title(titles[i])
         if colorbar:

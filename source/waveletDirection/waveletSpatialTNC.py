@@ -67,7 +67,6 @@ kern[2,1,1,2] = 1
                   
 
 dirFile = '/home/asalerno/Documents/pyDirectionCompSense/GradientVectorMag.txt'
-#engfile = '/home/asalerno/Documents/pyDirectionCompSense/phantom/engFile30dir_5mins.npy'
 engfile = None
 nmins = 5
 dirs = np.loadtxt(dirFile)

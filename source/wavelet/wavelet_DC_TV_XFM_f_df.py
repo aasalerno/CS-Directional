@@ -99,5 +99,5 @@ def objectiveFunctionTV(x, N, strtag, kern, dirWeight=0, dirs=None, nmins=0,
     return (1/a)*np.log(np.cosh(a*tf.TV(x,N,strtag,kern,dirWeight,dirs,nmins,dirInfo)))
     
 def objectiveFunctionXFM(x, a=10):
-    return np.sum((1/a)*np.log(np.cosh(X)))
+    return np.sum((1/a)*np.log(np.cosh(a*x)))
     

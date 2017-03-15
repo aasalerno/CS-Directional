@@ -1,18 +1,11 @@
 from __future__ import division
 import numpy as np 
-import scipy as sp
 import matplotlib.pyplot as plt
 plt.rcParams['image.cmap'] = 'gray'
 plt.rcParams['image.interpolation'] = 'none'
-
-import os.path
 import transforms as tf
 import scipy.ndimage.filters
 import gradWaveletMS as grads
-import sampling as samp
-import direction as d
-import optimize as opt
-EPS = np.finfo(float).eps
 
 # ----------------------------------------------------- #
 # ------- MAJOR FUNCTIONS FOR USE IN MAIN CODE -------- #
