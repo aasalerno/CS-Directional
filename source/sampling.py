@@ -241,7 +241,7 @@ def genSampling(pdf, n_iter, tol):
     pdf[np.where(pdf > 1)] = 1
     K = np.sum(pdf)
     
-    minIntr = 1e99;
+    minIntr = 1e6;
     minIntrVec = np.zeros(pdf.shape)
     stat = []
     
@@ -268,7 +268,9 @@ def genSamplingDir(img_sz=[180,180],
                 nmins=5,
                 endSize=None,
                 engfile=None):
-    
+    '''
+    This was the original method for sampling directionally based data -- now we use dirSampling within the functin direction
+    '''
     if not endSize:
         endSize = img_sz
     import itertools
@@ -422,9 +424,9 @@ def genSamplingDir(img_sz=[180,180],
 
     return samp
 
-def radialHistogram(k,rmax=np.sqrt(2),bins=50,pdf=None,sl=None,disp=1):
+def radialHistogram(k,rmax=1,bins=50,pdf=None,sl=None,disp=1):
     
-    maxxy = (rmax**2)/2
+    maxxy = rmax
     [x,y] = np.meshgrid(np.linspace(-maxxy,maxxy,k.shape[0]), np.linspace(-maxxy,maxxy,k.shape[1]))
     r = np.sqrt(x**2+y**2)
     r *= k
@@ -437,14 +439,14 @@ def radialHistogram(k,rmax=np.sqrt(2),bins=50,pdf=None,sl=None,disp=1):
     areas[0] = np.pi*rsq[0]
     areas[1:] = np.pi*np.diff(rsq)
 
-    fig = plt.figure()
+    #fig = plt.figure()
     plt.bar(binEdges[:-1],cnts/np.sum(cnts)/areas,width=binEdges[1]-binEdges[0])
     ymax = np.max(cnts/areas)*1.1/np.sum(cnts)
     #plt.bar(binEdges[:-1],cnts,width=binEdges[1]-binEdges[0])
     #ymax = np.max(cnts)*1.1
     plt.xlim(0,rmax)
     plt.ylim(0,ymax)
-    plt.title('Radial Histogram')
+    #plt.title('Radial Histogram')
     plt.xlabel('Radius')
     plt.ylabel('Counts')
     

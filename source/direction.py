@@ -11,6 +11,7 @@ import numpy.fft as fft
 import scipy.optimize as sciopt
 from numpy.linalg import inv
 import sampling as samp
+import scipy.ndimage as ndimage
 
 
 
@@ -157,7 +158,7 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,Ahat):
     return Gdiffsq
     
 def dirDataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
-    if not origDataSize:
+    if np.all(origDataSize) == False:
         origDataSize = data.shape[-2:]
     
     N = data.shape
@@ -165,7 +166,7 @@ def dirDataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
     [x,y] = np.meshgrid(np.linspace(-1,1,origDataSize[0]),np.linspace(-1,1,origDataSize[1]))
     r = np.sqrt(x**2+y**2)
     
-    if N[-2:] != origDataSize:
+    if np.all(N[-2:] == origDataSize) == False:
         r = zpad(r,N[-2:])
     
     x,y = np.where(np.logical_and(r>0,r<1))
@@ -403,7 +404,72 @@ def dirSampPattern(N,P,pctg,radius,dirs,radFac=1.5):
         k[sampSets[randDir][randSet],sampLocs[0][i],sampLocs[1][i]] = 1
            
     return k
+
+def dirPDFSamp(N,P,pctg,radius,dirs,cyl=True,taper=0.1):
+    print("Create PDF")
+    N0 = N
+    N = np.array(N[-2:])
+    x,y = np.meshgrid(np.linspace(-1+1e-4,1-1e-4,N[1]),np.linspace(-1+1e-4,1-1e-4,N[0]))
+    r = np.sqrt(x**2 + y**2)
+    pdf = np.zeros(N)
+    pdf[r<=radius] = 1
+    if cyl:
+        totPix = np.pi/4*np.prod(N)
+        PCTG = round(pctg*totPix)
+    else:
+        totPix = np.prod(N)
+        PCTG = round(pctg*totPix)
+    midPix = round(np.sum(pdf))
+    leftPix = PCTG-midPix
+    leftPdf = leftPix/totPix
+    rTap = radius+taper
+    rHold = r.copy()
+    rHold = ((r<=rTap)*(r>radius))*r
+    rHold = abs(rHold - np.max(rHold))/taper
+    rHold[rHold>1] = 1e6
+    leftPdf = (leftPix - (np.sum((rHold<=1)*(rHold>=0)*(1-leftPdf))/P))/totPix
+    rHold[(rHold<=1)*(rHold>=0)] += leftPdf**(1/P)
+    rHold[(rHold>=1)*(rHold<=1e3)] = 1
+    rHold[rHold>1e4] = 0
+    pdf = pdf + rHold**P
+    tapPix = round(np.sum(pdf))
     
+    if cyl:
+        pdf[(r<=1)*(r>rTap)] = leftPdf
+    else:
+        pdf[r>rTap] = leftPdf
+    
+    pdf = ndimage.filters.gaussian_filter(pdf,1)
+    pdf[pdf>1] = 1
+    
+    if cyl:
+        pdf[(r<=1)*(pdf<leftPdf)] = leftPdf
+        pdf[r>1] = 0
+    else:
+        pdf[(r<=1)*(pdf<leftPdf)] = leftPdf
+        
+    pdf[abs(pdf-leftPdf)<1e-4] = 0
+    print("Create Var. Dens. Pattern")
+    k = np.zeros(N0)    
+    for i in range(N0[0]):
+        k[i] = samp.genSampling(pdf, 10, 2)[0].astype(int)
+    
+    print("Create teams of directions")
+    sampSets = makeDirSetsPE(dirs,leftPdf)[1]
+    nDirs = len(dirs)
+    nSets = len(sampSets[0])
+    
+    rLocs = ((r<=1)*(r>=rTap)).astype(int)
+    sampLocs = np.where(rLocs)
+    
+    print("Choose groups for each point in k-space")
+    for i in range(len(sampLocs[0])):
+        randDir = int(np.random.random(1)*nDirs)
+        randSet = int(np.random.random(1)*nSets)
+        k[sampSets[randDir][randSet],sampLocs[0][i],sampLocs[1][i]] = 1
+    
+    return k
+
 def zpad(orig_data,res_sz):
     res_sz = np.array(res_sz)
     orig_sz = np.array(orig_data.shape)
