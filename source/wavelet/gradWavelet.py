@@ -108,9 +108,9 @@ def gTV(x, N, strtag, kern, dirWeight, dirs=None, nmins=0, dirInfo=[None,None,No
     TV_data = tf.TV(x0,N,strtag,kern,dirWeight,dirs,nmins,dirInfo)
     for i in xrange(len(strtag)):
         if strtag[i] == 'spatial':
-            #kernHld = np.flipud(np.fliplr(kern[i])).reshape(Nkern)
-            #grad[:,i,:,:] = correlate(np.tanh(a*TV_data[i]),kernHld,mode='wrap')
             grad[:,i,:,:] = convolve(np.tanh(a*TV_data[i]),kern[i].reshape(Nkern),mode='wrap')
+        elif strtag[i] == 'diff':
+            grad[:,i,:,:] = 0
     grad = np.sum(grad,axis=1)
     return grad
     

@@ -539,4 +539,15 @@ def readPEtable(inputfile):
     k = np.zeros([t1len,t2len])
     k[t1list,t2list] = 1
     return k
+
+def genPEtable(t1,t2,filename):
+    import re
+    np.set_printoptions(threshold=1e99)
+    t1s = 't1 = \n ' + re.sub('[\[\]]', '', np.array_str(t1))
+    t2s = 't2 = \n ' + re.sub('[\[\]]', '', np.array_str(t2))
+    ts = t1s + '\n' + t2s
+    out = open(filename,'w')
+    out.write(ts)
+    out.close()
+    np.set_printoptions(threshold=1e3)
     

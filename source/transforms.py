@@ -79,7 +79,7 @@ def TV(im, N, strtag, kern, dirWeight=1, dirs=None, nmins=0, dirInfo=[None,None,
         if strtag[i] == 'spatial':
             res[i] = correlate(im,kern[i].reshape(Nkern),mode='wrap')
         elif strtag[i] == 'diff':
-            res[i] = dirWeight*d.least_Squares_Fitting(im,N,strtag,dirs,inds,dirInfo[0]).real
+            res[i] = dirWeight*d.least_Squares_Fitting(im,N,strtag,dirs,inds,dirInfo[0])
     return res.reshape(np.hstack([len(strtag), N]))
     
 

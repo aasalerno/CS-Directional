@@ -101,12 +101,7 @@ def derivativeFunction(x, N, N_im, sz, dims, dimOpt, dimLenOpt, lam1, lam2, data
 
 def objectiveFunctionDataCons(x, N, ph, data, k, sz, strtag):
     #import pdb; pdb.set_trace()
-    if allSame(strtag):
-        xdata = tf.fftnc(x,ph,sz=sz)
-    else: 
-        xdata = np.zeros(N)
-        for i in range(N[0]):
-            xdata[i] = tf.fft2c(x,ph,sz=sz)
+    xdata = tf.fft2c(x,ph,sz=sz,axes=(-2,-1))
     # Currently only will iterate over the first axis. Should include something at the beginning of the functions to have it make sure that the order is ['other','spatial','spatial'] via swapaxis and then swap back if we want after.
     obj_data = k*(data - xdata)
     return obj_data*obj_data.conj() #L2 Norm

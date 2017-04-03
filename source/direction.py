@@ -90,7 +90,7 @@ def calc_Mid_Matrix(dirs,nmins):
         #A = np.hstack([A, datHold])
         # Calculate Ahat, which is the solution to Ax = b, [(A'A)^(-1)*A']b = x
         Ahat[qDir] = np.dot(inv(np.dot(A[qDir].T,A[qDir])),A[qDir].T)
-        M[qDir] = np.dot(Ahat[qDir].T,Ahat[qDir])
+        #M[qDir] = np.dot(Ahat[qDir].T,Ahat[qDir])
     
     
     # We need to take care of the positive and negatives of the images that we are using, since this system has a +/- aspect to the comparisons that occur
@@ -105,22 +105,20 @@ def calc_Mid_Matrix(dirs,nmins):
         
     # dI, the derivative with respect to the Image. We need to now apply the +/-
     dI = np.zeros([n,n,nmins])
-    dIM = np.zeros([n,nmins,n])
+    #dIM = np.zeros([n,nmins,n])
     Ause = range(n)
     
     for kk in range(n):
         dI[kk,indsNeg[kk][0],indsNeg[kk][1]] = -1
         dI[kk,indsPos[kk][0],indsPos[kk][1]] = 1
-        Ause[kk] = np.where(np.any(dI[kk,:,:] != 0,axis=1))[0]
-        for d in xrange(len(Ause[kk])):
-            colUse = Ause[kk][d]
-            dIM[kk,:,colUse] = np.dot(dI[kk,colUse,:],M[colUse,:,:])
+        #Ause[kk] = np.where(np.any(dI[kk,:,:] != 0,axis=1))[0]
+        #for d in xrange(len(Ause[kk])):
+            #colUse = Ause[kk][d]
+            #dIM[kk,:,colUse] = np.dot(dI[kk,colUse,:],M[colUse,:,:])
     
-    dirInfo = [M]
-    dirInfo.append(dIM)
-    dirInfo.append(Ause)
+    dirInfo = [Ahat]
+    dirInfo.append(dI)
     dirInfo.append(inds)
-    dirInfo.append(Ahat)
     
     return dirInfo
 
@@ -132,7 +130,7 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,Ahat):
     nmins = inds.shape[1]
     #dirloc = strtag.index("diff")
     #x0 = np.rollaxis(x0,dirloc)
-    Gdiffsq = np.zeros([N[0],3,N[1]*N[2]])
+    Gdiff = np.zeros([N[0],3,N[1]*N[2]])
     
     for q in xrange(dirs.shape[0]):
         r = inds[q,:]
@@ -147,15 +145,15 @@ def least_Squares_Fitting(x,N,strtag,dirs,inds,Ahat):
         #Aleft = np.linalg.solve((A.T*A),A.T)
         #beta = np.zeros(np.hstack([Iq.shape,3]))
         
-        Gdiffsq[q] = np.dot(Ahat[q],Irq)
+        Gdiff[q] = np.dot(Ahat[q],Irq)
         #for i in xrange(nrow):
             #for j in xrange(ncol):
                 #Gdiffsq[q,i,j] = np.dot(np.dot(Irq[:,i,j],M[q,:,:]),Irq[:,i,j])
     
     # This line puts the data back into the orientation that it was in before
     #Gdiffsq = np.rollaxis(Gdiffsq,0,dirloc)
-    
-    return Gdiffsq
+    Gdiff = np.sum(Gdiff,axis=1)
+    return Gdiff
     
 def dirDataSharing(samp,data,dirs,origDataSize=None,maxCheck=5,bymax=1):
     if np.all(origDataSize) == False:
